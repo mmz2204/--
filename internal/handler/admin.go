@@ -3,6 +3,8 @@ package handler
 import (
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"tools.jinbox.cn/config"
@@ -286,4 +288,63 @@ func ExportData(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	c.Header("Content-Disposition", "attachment; filename=tools_data.json")
 	c.JSON(http.StatusOK, exportData)
+}
+
+// UploadCSV 上传CSV文件
+func UploadCSV(c *gin.Context) {
+	// 创建数据目录（如果不存在）
+	dataDir := "./data"
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建目录失败"})
+		return
+	}
+
+	// 处理分类CSV文件
+	categoriesFile, err := c.FormFile("categories")
+	if err == nil {
+		// 检查文件类型
+		ext := filepath.Ext(categoriesFile.Filename)
+		if ext != ".csv" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "categories文件必须是CSV格式"})
+			return
+		}
+
+		// 保存文件
+		categoriesPath := filepath.Join(dataDir, "categories.csv")
+		if err := c.SaveUploadedFile(categoriesFile, categoriesPath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "保存categories文件失败"})
+			return
+		}
+	}
+
+	// 处理工具CSV文件
+	toolsFile, err := c.FormFile("tools")
+	if err == nil {
+		// 检查文件类型
+		ext := filepath.Ext(toolsFile.Filename)
+		if ext != ".csv" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "tools文件必须是CSV格式"})
+			return
+		}
+
+		// 保存文件
+		toolsPath := filepath.Join(dataDir, "tools.csv")
+		if err := c.SaveUploadedFile(toolsFile, toolsPath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "保存tools文件失败"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "CSV文件上传成功"})
+}
+
+// ReloadCSV 重新加载CSV数据
+func ReloadCSV(c *gin.Context) {
+	// 使用现有的重新加载函数
+	if err := ReloadDataFromCSV(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "CSV数据重新加载成功"})
 }

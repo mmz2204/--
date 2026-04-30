@@ -8,19 +8,20 @@ import (
 
 // Tool 工具模型
 type Tool struct {
-	ID          uint      `gorm:"primary_key" json:"id"`           // 工具ID
-	Name        string    `gorm:"size:100;not null" json:"name"`   // 工具名称
-	Description string    `gorm:"size:500" json:"description"`     // 工具描述
-	Icon        string    `gorm:"size:255" json:"icon"`            // 工具图标URL
-	URL         string    `gorm:"size:500" json:"url"`             // 工具访问地址（空表示本站工具）
-	CategoryID  uint      `gorm:"not null" json:"category_id"`     // 所属分类ID
-	IsHot       bool      `gorm:"default:false" json:"is_hot"`     // 是否火热工具
-	IsForeign   bool      `gorm:"default:false" json:"is_foreign"` // 是否国外工具
-	UsageCount  int       `gorm:"default:0" json:"usage_count"`    // 使用次数
-	SortOrder   int       `gorm:"default:0" json:"sort_order"`     // 排序顺序
-	Status      int       `gorm:"default:1" json:"status"`         // 状态：0禁用，1启用
-	CreatedAt   time.Time `json:"created_at"`                      // 创建时间
-	UpdatedAt   time.Time `json:"updated_at"`                      // 更新时间
+	ID                  uint      `gorm:"primary_key" json:"id"`                 // 工具ID
+	Name                string    `gorm:"size:100;not null" json:"name"`         // 工具名称
+	Description         string    `gorm:"size:500" json:"description"`           // 工具描述
+	DetailedDescription string    `gorm:"size:1000" json:"detailed_description"` // 详细描述（约100字）
+	Icon                string    `gorm:"size:255" json:"icon"`                  // 工具图标URL
+	URL                 string    `gorm:"size:500" json:"url"`                   // 工具访问地址（空表示本站工具）
+	CategoryID          uint      `gorm:"not null" json:"category_id"`           // 所属分类ID
+	IsHot               bool      `gorm:"default:false" json:"is_hot"`           // 是否火热工具
+	IsForeign           bool      `gorm:"default:false" json:"is_foreign"`       // 是否国外工具
+	UsageCount          int       `gorm:"default:0" json:"usage_count"`          // 使用次数
+	SortOrder           int       `gorm:"default:0" json:"sort_order"`           // 排序顺序
+	Status              int       `gorm:"default:1" json:"status"`               // 状态：0禁用，1启用
+	CreatedAt           time.Time `json:"created_at"`                            // 创建时间
+	UpdatedAt           time.Time `json:"updated_at"`                            // 更新时间
 }
 
 // TableName 指定表名

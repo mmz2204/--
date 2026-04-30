@@ -17,6 +17,7 @@
                 name: t.name,
                 desc: t.description || '',
                 description: t.description || '',
+                detailed_description: t.detailed_description || '',
                 cat: t.category_id ? 'cat_' + t.category_id : 'other',
                 hot: t.is_hot || false,
                 foreign: t.is_foreign || false,
@@ -31,6 +32,7 @@
                 name: t.name,
                 desc: t.description || '',
                 description: t.description || '',
+                detailed_description: t.detailed_description || '',
                 cat: t.category_id ? 'cat_' + t.category_id : 'other',
                 hot: t.is_hot || true,
                 foreign: t.is_foreign || false,
@@ -60,6 +62,7 @@
                     name: t.name,
                     desc: t.description || '',
                     description: t.description || '',
+                    detailed_description: t.detailed_description || '',
                     cat: t.category_id ? 'cat_' + t.category_id : 'other',
                     hot: t.is_hot || false,
                     foreign: t.is_foreign || false,
@@ -73,6 +76,7 @@
                     name: t.name,
                     desc: t.description || '',
                     description: t.description || '',
+                    detailed_description: t.detailed_description || '',
                     cat: t.category_id ? 'cat_' + t.category_id : 'other',
                     hot: t.is_hot || true,
                     foreign: t.is_foreign || false,
@@ -452,8 +456,8 @@
     function openTool(tool) {
         // 判断是否为外部链接工具（排除 '#' 和空值）
         if (tool.url && tool.url.trim() !== '' && tool.url !== '#') {
-            // 外部链接工具：跳转到中间页
-            window.location.href = '/tool?id=' + tool.id;
+            // 有配置URL的工具：直接跳转到该URL（如JSON处理工具直接跳转到/json）
+            window.location.href = tool.url;
         } else {
             // 本地工具：在本站打开
             // 更新页面 SEO 标签

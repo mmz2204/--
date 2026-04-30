@@ -1,26 +1,32 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"tools.jinbox.cn/config"
 	"tools.jinbox.cn/internal/handler"
 	"tools.jinbox.cn/internal/middleware"
+	"tools.jinbox.cn/pkg/logger"
 )
 
 func main() {
+	// 初始化日志系统
+	if err := logger.InitLogger("./logs", logger.INFO); err != nil {
+		panic("日志系统初始化失败: " + err.Error())
+	}
+
 	// 初始化数据库
 	config.InitDB()
 
 	// 自动生成静态数据文件
 	if err := handler.AutoGenerateStaticData(); err != nil {
-		log.Printf("警告: 自动生成静态数据失败: %v", err)
+		logger.Warning("自动生成静态数据失败: %v", err)
 	}
 
-	// 创建Gin引擎
-	r := gin.Default()
+	// 创建Gin引擎（使用自定义日志中间件）
+	r := gin.New()
+	r.Use(logger.GinLoggerMiddleware(), logger.GinRecoveryMiddleware())
 
 	// 配置CORS
 	r.Use(func(c *gin.Context) {
@@ -75,6 +81,49 @@ func main() {
 		c.File("./frontend/tool.html")
 	})
 
+	// JSON工具页面路由 - 支持独立路径用于SEO
+	r.GET("/json", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
+	r.GET("/json/format", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
+	r.GET("/json/parse", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
+	r.GET("/json/compress", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
+	r.GET("/json/view", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
+	r.GET("/json/color", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
+	r.GET("/json/xml", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
+	r.GET("/json/entity", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
+	r.GET("/json/compare", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
+	r.GET("/json/editor", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
+	r.GET("/json/excel", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
+	r.GET("/json/tutorial", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
+
+	// 管理员后台页面路由
+	r.GET("/admin", func(c *gin.Context) {
+		c.File("./frontend/admin.html")
+	})
+
 	// 私有路由（需要JWT认证）
 	private := r.Group("/api/admin")
 	private.Use(middleware.JWTAuthenticate())
@@ -109,6 +158,16 @@ func main() {
 			adminRoutes.GET("/export", handler.ExportData)
 			// 生成静态数据文件
 			adminRoutes.POST("/generate-static-data", handler.GenerateStaticData)
+			// 重新从CSV加载数据
+			adminRoutes.POST("/reload-csv", func(c *gin.Context) {
+				if err := handler.ReloadDataFromCSV(); err != nil {
+					c.JSON(500, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(200, gin.H{"message": "CSV数据重新加载成功"})
+			})
+			// 上传CSV文件
+			adminRoutes.POST("/upload-csv", handler.UploadCSV)
 		}
 	}
 
@@ -119,6 +178,6 @@ func main() {
 	}
 
 	// 启动服务
-	log.Printf("服务启动成功，监听端口: %s", port)
-	log.Fatal(r.Run(":" + port))
+	logger.Info("服务启动成功，监听端口: %s", port)
+	logger.Fatal("服务运行失败: %v", r.Run(":"+port))
 }

@@ -571,7 +571,9 @@
             // 渲染当前工具信息
             document.getElementById('tool-icon').textContent = currentTool.icon || '🤖';
             document.getElementById('tool-name').textContent = currentTool.name;
-            document.getElementById('tool-desc').textContent = currentTool.description || currentTool.desc || '暂无描述';
+            // 优先显示详细描述，如果没有则显示简单描述
+            const description = currentTool.detailed_description || currentTool.description || currentTool.desc || '暂无描述';
+            document.getElementById('tool-desc').textContent = description;
             document.getElementById('action-btn').href = currentTool.url || '#';
             
             // 渲染标签

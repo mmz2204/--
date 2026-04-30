@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .admin-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        h2 {
+            color: #555;
+            margin-bottom: 20px;
+            font-size: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        /* 登录区域 */
+        .login-box {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+        
+        .login-box h1 {
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+        
+        .btn-info:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* 标签页 */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #f0f0f0;
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* 表格 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .data-table tr:hover {
+            background: #f8f9ff;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        
+        .action-btn.edit {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .action-btn.delete {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .modal-close:hover {
+            color: #333;
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-footer .btn {
+            flex: 1;
+        }
+        
+        /* 上传区域 */
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 15px;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .upload-area input[type="file"] {
+            display: none;
+        }
+        
+        /* 消息提示 */
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* 工具栏 */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .toolbar .btn {
+            width: auto;
+            padding: 10px 20px;
+        }
+        
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .stat-card.green {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .stat-card.orange {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .stat-card.blue {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        /* 头部 */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .admin-header h1 {
+            margin-bottom: 0;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-info span {
+            color: #666;
+        }
+        
+        /* 文件信息 */
+        .file-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录表单 -->
+    <div id="loginSection" class="login-box">
+        <h1>🔐 管理后台</h1>
+        <div class="form-group">
+            <label>用户名</label>
+            <input type="text" id="username" class="form-input" placeholder="请输入用户名">
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="password" class="form-input" placeholder="请输入密码">
+        </div>
+        <button class="btn btn-primary" onclick="login()">
+            <span>🔐</span>
+            <span>登录</span>
+        </button>
+        <div id="loginError" style="color: red; margin-top: 10px; text-align: center; display: none;"></div>
+    </div>
+    
+    <!-- 管理后台 -->
+    <div id="adminSection" class="container" style="display: none;">
+        <div class="admin-card">
+            <div class="admin-header">
+                <h1>⚙️ 管理后台</h1>
+                <div class="user-info">
+                    <span id="welcomeText">欢迎，管理员</span>
+                    <button class="btn btn-secondary" onclick="logout()" style="width: auto; padding: 8px 16px;">
+                        🚪 退出
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 统计信息 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="toolCount">0</h3>
+                    <p>工具总数</p>
+                </div>
+                <div class="stat-card green">
+                    <h3 id="categoryCount">0</h3>
+                    <p>分类总数</p>
+                </div>
+                <div class="stat-card orange">
+                    <h3 id="hotToolCount">0</h3>
+                    <p>火热工具</p>
+                </div>
+                <div class="stat-card blue">
+                    <h3 id="foreignToolCount">0</h3>
+                    <p>国外工具</p>
+                </div>
+            </div>
+            
+            <!-- 标签页 -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('tools')">🛠️ 工具管理</button>
+                <button class="tab-btn" onclick="switchTab('categories')">📁 分类管理</button>
+                <button class="tab-btn" onclick="switchTab('data')">📊 数据管理</button>
+            </div>
+            
+            <!-- 工具管理 -->
+            <div id="toolsTab" class="tab-content active">
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="showToolModal()">+ 添加工具</button>
+                    <button class="btn btn-info" onclick="exportData()">📥 导出数据</button>
+                </div>
+                <table class="data-table" id="toolsTable">
+                    <thead>
+                        <tr>
+                            <th>图标</th>
+                            <th>名称</th>
+                            <th>分类</th>
+                            <th>URL</th>
+                            <th>火热</th>
+                            <th>国外</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="toolsTableBody">
+                        <tr><td colspan="7" style="text-align: center; color: #999;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分类管理 -->
+            <div id="categoriesTab" class="tab-content">
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="showCategoryModal()">+ 添加分类</button>
+                </div>
+                <table class="data-table" id="categoriesTable">
+                    <thead>
+                        <tr>
+                            <th>图标</th>
+                            <th>名称</th>
+                            <th>排序</th>
+                            <th>工具数</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categoriesTableBody">
+                        <tr><td colspan="5" style="text-align: center; color: #999;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 数据管理 -->
+            <div id="dataTab" class="tab-content">
+                <div class="stats-grid">
+                    <div class="stat-card" onclick="uploadCSV()">
+                        <h3>📤</h3>
+                        <p>上传 CSV 文件</p>
+                    </div>
+                    <div class="stat-card green" onclick="reloadCSV()">
+                        <h3>🔄</h3>
+                        <p>重新加载数据</p>
+                    </div>
+                    <div class="stat-card blue" onclick="generateStaticData()">
+                        <h3>📄</h3>
+                        <p>生成静态文件</p>
+                    </div>
+                </div>
+                
+                <h2 style="margin-top: 30px;">📁 上传 CSV 文件</h2>
+                <div style="display: grid; gap: 20px;">
+                    <div>
+                        <label style="font-size: 14px; color: #555; margin-bottom: 8px; display: block;">分类文件 (categories.csv)</label>
+                        <div class="upload-area" onclick="document.getElementById('categoriesFile').click()">
+                            <p>📋 点击或拖拽上传分类 CSV 文件</p>
+                            <input type="file" id="categoriesFile" accept=".csv" onchange="handleFileSelect(this)">
+                            <div id="categoriesFileInfo" class="file-info" style="display: none;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size: 14px; color: #555; margin-bottom: 8px; display: block;">工具文件 (tools.csv)</label>
+                        <div class="upload-area" onclick="document.getElementById('toolsFile').click()">
+                            <p>🛠️ 点击或拖拽上传工具 CSV 文件</p>
+                            <input type="file" id="toolsFile" accept=".csv" onchange="handleFileSelect(this)">
+                            <div id="toolsFileInfo" class="file-info" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="toolbar" style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="uploadCSV()">📤 上传文件</button>
+                    <button class="btn btn-success" onclick="reloadCSV()">🔄 重新加载数据</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 工具模态框 -->
+    <div id="toolModal" class="modal-overlay" style="display: none;" onclick="hideToolModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title" id="toolModalTitle">✨ 添加工具</span>
+                <button class="modal-close" onclick="hideToolModal()">×</button>
+            </div>
+            <div class="form-group">
+                <label>工具名称 *</label>
+                <input type="text" id="toolName" class="form-input" placeholder="请输入工具名称">
+            </div>
+            <div class="form-group">
+                <label>工具图标（emoji）</label>
+                <input type="text" id="toolIcon" class="form-input" placeholder="如: 📷">
+            </div>
+            <div class="form-group">
+                <label>简单描述</label>
+                <textarea id="toolDesc" class="form-input" placeholder="请输入工具描述" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+                <label>详细描述（约100字）</label>
+                <textarea id="toolDetailedDesc" class="form-input" placeholder="请输入详细描述" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>访问URL</label>
+                <input type="text" id="toolUrl" class="form-input" placeholder="外部链接，留空表示本站工具">
+            </div>
+            <div class="form-group">
+                <label>所属分类 *</label>
+                <select id="toolCategory" class="form-input">
+                    <option value="">请选择分类</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="toolHot"> 设为火热工具
+                </label>
+            </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="toolForeign"> 设为国外工具
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideToolModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTool()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 分类模态框 -->
+    <div id="categoryModal" class="modal-overlay" style="display: none;" onclick="hideCategoryModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title" id="categoryModalTitle">📁 添加分类</span>
+                <button class="modal-close" onclick="hideCategoryModal()">×</button>
+            </div>
+            <div class="form-group">
+                <label>分类名称 *</label>
+                <input type="text" id="categoryName" class="form-input" placeholder="请输入分类名称">
+            </div>
+            <div class="form-group">
+                <label>分类图标（emoji）</label>
+                <input type="text" id="categoryIcon" class="form-input" placeholder="如: 💻">
+            </div>
+            <div class="form-group">
+                <label>排序序号</label>
+                <input type="number" id="categoryOrder" class="form-input" placeholder="数字越小越靠前" value="1">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideCategoryModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveCategory()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 消息提示 -->
+    <div id="message" class="message" style="display: none;"></div>
+    
+    <script>
+        let token = localStorage.getItem('admin_token');
+        let categoriesList = [];
+        let currentEditToolId = null;
+        let currentEditCategoryId = null;
+        
+        // 页面加载时检查登录状态
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (token) {
+                const isValid = await validateToken();
+                if (isValid) {
+                    showAdminSection();
+                    loadAllData();
+                } else {
+                    localStorage.removeItem('admin_token');
+                    token = null;
+                    showLoginSection();
+                }
+            } else {
+                showLoginSection();
+            }
+        });
+        
+        // 验证token
+        async function validateToken() {
+            try {
+                const response = await fetch('/api/admin/profile', {
+                    method: 'GET',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                return response.ok;
+            } catch {
+                return false;
+            }
+        }
+        
+        // 显示登录表单
+        function showLoginSection() {
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('adminSection').style.display = 'none';
+        }
+        
+        // 显示管理后台
+        function showAdminSection() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('adminSection').style.display = 'block';
+        }
+        
+        // 登录
+        async function login() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                showMessage('请输入用户名和密码', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    token = data.data.token;
+                    localStorage.setItem('admin_token', token);
+                    showMessage('登录成功', 'success');
+                    showAdminSection();
+                    loadAllData();
+                } else {
+                    document.getElementById('loginError').textContent = data.error || '登录失败';
+                    document.getElementById('loginError').style.display = 'block';
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+        
+        // 退出登录
+        function logout() {
+            localStorage.removeItem('admin_token');
+            token = null;
+            showLoginSection();
+            showMessage('已退出登录', 'success');
+        }
+        
+        // 加载所有数据
+        async function loadAllData() {
+            await loadCategories();
+            await loadTools();
+        }
+        
+        // 切换标签页
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+        
+        // ── 工具管理 ──
+        
+        async function loadTools() {
+            try {
+                const response = await fetch('/api/tools', {
+                    method: 'GET',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                if (result.data) {
+                    renderToolsTable(result.data);
+                    updateStats(result.data);
+                }
+            } catch (error) {
+                console.error('加载工具列表失败:', error);
+            }
+        }
+        
+        function renderToolsTable(tools) {
+            const tbody = document.getElementById('toolsTableBody');
+            if (!tools || tools.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">暂无工具</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = tools.map(tool => `
+                <tr>
+                    <td>${tool.icon || '📄'}</td>
+                    <td>${tool.name}</td>
+                    <td>${getCategoryName(tool.category_id)}</td>
+                    <td>${tool.url ? '<span style="color: #1976d2;">外部</span>' : '<span style="color: #999;">本站</span>'}</td>
+                    <td>${tool.is_hot ? '🔥' : '-'}</td>
+                    <td>${tool.is_foreign ? '🌍' : '-'}</td>
+                    <td>
+                        <button class="action-btn edit" onclick="editTool(${tool.id})">编辑</button>
+                        <button class="action-btn delete" onclick="deleteTool(${tool.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function updateStats(tools) {
+            document.getElementById('toolCount').textContent = tools.length;
+            document.getElementById('hotToolCount').textContent = tools.filter(t => t.is_hot).length;
+            document.getElementById('foreignToolCount').textContent = tools.filter(t => t.is_foreign).length;
+            document.getElementById('categoryCount').textContent = categoriesList.length;
+        }
+        
+        function getCategoryName(categoryId) {
+            const cat = categoriesList.find(c => c.id === categoryId);
+            return cat ? cat.name : '未知';
+        }
+        
+        function showToolModal(id = null) {
+            currentEditToolId = id;
+            document.getElementById('toolModalTitle').textContent = id ? '✏️ 编辑工具' : '✨ 添加工具';
+            
+            if (id) {
+                loadToolForEdit(id);
+            } else {
+                document.getElementById('toolName').value = '';
+                document.getElementById('toolIcon').value = '';
+                document.getElementById('toolDesc').value = '';
+                document.getElementById('toolDetailedDesc').value = '';
+                document.getElementById('toolUrl').value = '';
+                document.getElementById('toolCategory').value = '';
+                document.getElementById('toolHot').checked = false;
+                document.getElementById('toolForeign').checked = false;
+            }
+            
+            populateCategorySelect();
+            document.getElementById('toolModal').style.display = 'flex';
+        }
+        
+        async function loadToolForEdit(id) {
+            try {
+                const response = await fetch('/api/tools/' + id, {
+                    method: 'GET',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                if (result.data) {
+                    const tool = result.data;
+                    document.getElementById('toolName').value = tool.name || '';
+                    document.getElementById('toolIcon').value = tool.icon || '';
+                    document.getElementById('toolDesc').value = tool.description || '';
+                    document.getElementById('toolDetailedDesc').value = tool.detailed_description || '';
+                    document.getElementById('toolUrl').value = tool.url || '';
+                    document.getElementById('toolCategory').value = tool.category_id || '';
+                    document.getElementById('toolHot').checked = tool.is_hot || false;
+                    document.getElementById('toolForeign').checked = tool.is_foreign || false;
+                }
+            } catch (error) {
+                console.error('获取工具信息失败:', error);
+            }
+        }
+        
+        function hideToolModal() {
+            document.getElementById('toolModal').style.display = 'none';
+            currentEditToolId = null;
+        }
+        
+        function populateCategorySelect() {
+            const select = document.getElementById('toolCategory');
+            select.innerHTML = '<option value="">请选择分类</option>';
+            categoriesList.forEach(cat => {
+                select.innerHTML += `<option value="${cat.id}">${cat.icon} ${cat.name}</option>`;
+            });
+        }
+        
+        async function saveTool() {
+            const name = document.getElementById('toolName').value.trim();
+            const icon = document.getElementById('toolIcon').value.trim();
+            const desc = document.getElementById('toolDesc').value.trim();
+            const detailedDesc = document.getElementById('toolDetailedDesc').value.trim();
+            const url = document.getElementById('toolUrl').value.trim();
+            const categoryId = parseInt(document.getElementById('toolCategory').value);
+            const isHot = document.getElementById('toolHot').checked;
+            const isForeign = document.getElementById('toolForeign').checked;
+            
+            if (!name) {
+                showMessage('请输入工具名称', 'error');
+                return;
+            }
+            if (!categoryId) {
+                showMessage('请选择分类', 'error');
+                return;
+            }
+            
+            const data = {
+                name, icon, description: desc, detailed_description: detailedDesc,
+                url, category_id: categoryId, is_hot: isHot, is_foreign: isForeign
+            };
+            
+            try {
+                const response = await fetch(currentEditToolId ? '/api/admin/tools/' + currentEditToolId : '/api/admin/tools', {
+                    method: currentEditToolId ? 'PUT' : 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    showMessage('保存成功', 'success');
+                    hideToolModal();
+                    loadTools();
+                } else {
+                    const result = await response.json();
+                    showMessage(result.error || '保存失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+        
+        async function editTool(id) {
+            showToolModal(id);
+        }
+        
+        async function deleteTool(id) {
+            if (!confirm('确定要删除这个工具吗？')) return;
+            
+            try {
+                const response = await fetch('/api/admin/tools/' + id, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (response.ok) {
+                    showMessage('删除成功', 'success');
+                    loadTools();
+                } else {
+                    showMessage('删除失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+        
+        // ── 分类管理 ──
+        
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/categories', {
+                    method: 'GET',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                if (result.data) {
+                    categoriesList = result.data;
+                    renderCategoriesTable(result.data);
+                }
+            } catch (error) {
+                console.error('加载分类列表失败:', error);
+            }
+        }
+        
+        function renderCategoriesTable(categories) {
+            const tbody = document.getElementById('categoriesTableBody');
+            if (!categories || categories.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">暂无分类</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = categories.map(cat => `
+                <tr>
+                    <td>${cat.icon || '📁'}</td>
+                    <td>${cat.name}</td>
+                    <td>${cat.sort_order || 0}</td>
+                    <td>${cat.tool_count || 0}</td>
+                    <td>
+                        <button class="action-btn edit" onclick="editCategory(${cat.id})">编辑</button>
+                        <button class="action-btn delete" onclick="deleteCategory(${cat.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function showCategoryModal(id = null) {
+            currentEditCategoryId = id;
+            document.getElementById('categoryModalTitle').textContent = id ? '✏️ 编辑分类' : '📁 添加分类';
+            
+            if (id) {
+                const cat = categoriesList.find(c => c.id === id);
+                if (cat) {
+                    document.getElementById('categoryName').value = cat.name || '';
+                    document.getElementById('categoryIcon').value = cat.icon || '';
+                    document.getElementById('categoryOrder').value = cat.sort_order || 1;
+                }
+            } else {
+                document.getElementById('categoryName').value = '';
+                document.getElementById('categoryIcon').value = '';
+                document.getElementById('categoryOrder').value = 1;
+            }
+            
+            document.getElementById('categoryModal').style.display = 'flex';
+        }
+        
+        function hideCategoryModal() {
+            document.getElementById('categoryModal').style.display = 'none';
+            currentEditCategoryId = null;
+        }
+        
+        async function saveCategory() {
+            const name = document.getElementById('categoryName').value.trim();
+            const icon = document.getElementById('categoryIcon').value.trim();
+            const sortOrder = parseInt(document.getElementById('categoryOrder').value) || 1;
+            
+            if (!name) {
+                showMessage('请输入分类名称', 'error');
+                return;
+            }
+            
+            const data = { name, icon, sort_order: sortOrder };
+            
+            try {
+                const response = await fetch(currentEditCategoryId ? '/api/admin/categories/' + currentEditCategoryId : '/api/admin/categories', {
+                    method: currentEditCategoryId ? 'PUT' : 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    showMessage('保存成功', 'success');
+                    hideCategoryModal();
+                    loadCategories();
+                } else {
+                    const result = await response.json();
+                    showMessage(result.error || '保存失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+        
+        function editCategory(id) {
+            showCategoryModal(id);
+        }
+        
+        async function deleteCategory(id) {
+            if (!confirm('确定要删除这个分类吗？')) return;
+            
+            try {
+                const response = await fetch('/api/admin/categories/' + id, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (response.ok) {
+                    showMessage('删除成功', 'success');
+                    loadCategories();
+                } else {
+                    showMessage('删除失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+        
+        // ── 数据管理 ──
+        
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            const infoDiv = document.getElementById(input.id + 'Info');
+            
+            if (file) {
+                infoDiv.textContent = `已选择: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                infoDiv.style.display = 'block';
+            } else {
+                infoDiv.style.display = 'none';
+            }
+        }
+        
+        async function uploadCSV() {
+            const categoriesFile = document.getElementById('categoriesFile').files[0];
+            const toolsFile = document.getElementById('toolsFile').files[0];
+            
+            if (!categoriesFile && !toolsFile) {
+                showMessage('请选择要上传的文件', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            if (categoriesFile) formData.append('categories', categoriesFile);
+            if (toolsFile) formData.append('tools', toolsFile);
+            
+            showMessage('正在上传...', 'info');
+            
+            try {
+                const response = await fetch('/api/admin/upload-csv', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage(data.message, 'success');
+                    document.getElementById('categoriesFile').value = '';
+                    document.getElementById('toolsFile').value = '';
+                    document.getElementById('categoriesFileInfo').style.display = 'none';
+                    document.getElementById('toolsFileInfo').style.display = 'none';
+                } else {
+                    showMessage(data.error || '上传失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+        
+        async function reloadCSV() {
+            showMessage('正在重新加载数据...', 'info');
+            
+            try {
+                const response = await fetch('/api/admin/reload-csv', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage(data.message, 'success');
+                    loadAllData();
+                } else {
+                    showMessage(data.error || '重新加载失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+        
+        async function exportData() {
+            try {
+                const response = await fetch('/api/admin/export', {
+                    method: 'GET',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (!response.ok) {
+                    showMessage('导出失败', 'error');
+                    return;
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'tools_data.json';
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showMessage('导出成功', 'success');
+            } catch (error) {
+                showMessage('导出失败', 'error');
+            }
+        }
+        
+        async function generateStaticData() {
+            showMessage('正在生成静态文件...', 'info');
+            
+            try {
+                const response = await fetch('/api/admin/generate-static-data', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage(data.message || '生成成功', 'success');
+                } else {
+                    showMessage(data.error || '生成失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+        
+        // 显示消息
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

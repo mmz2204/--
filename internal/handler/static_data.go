@@ -122,3 +122,54 @@ func AutoGenerateStaticData() error {
 	fmt.Println("静态数据文件生成成功:", dataFile)
 	return nil
 }
+
+// ReloadDataFromCSV 重新从CSV加载数据并生成静态文件
+func ReloadDataFromCSV() error {
+	// 1. 强制从CSV重新加载
+	config.ForceReloadFromCSV()
+
+	// 2. 获取最新数据
+	categories, err := model.GetAllCategories(config.DB)
+	if err != nil {
+		return fmt.Errorf("获取分类失败: %v", err)
+	}
+
+	tools, err := model.GetAllTools(config.DB)
+	if err != nil {
+		return fmt.Errorf("获取工具失败: %v", err)
+	}
+
+	hotTools, err := model.GetHotTools(config.DB)
+	if err != nil {
+		return fmt.Errorf("获取热门工具失败: %v", err)
+	}
+
+	// 3. 构建数据结构
+	data := map[string]interface{}{
+		"categories": categories,
+		"tools":      tools,
+		"hotTools":   hotTools,
+	}
+
+	// 4. 确保目录存在
+	if err := os.MkdirAll("frontend", 0755); err != nil {
+		return err
+	}
+
+	// 5. 写入文件
+	dataFile := "frontend/data.json"
+	file, err := os.Create(dataFile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(data); err != nil {
+		return err
+	}
+
+	fmt.Println("CSV数据重新加载并生成静态文件成功:", dataFile)
+	return nil
+}
