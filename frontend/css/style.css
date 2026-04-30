@@ -132,7 +132,7 @@
         }
 
         /* ── 用户头像 ── */
-        .user-wrap { position: relative; flex-shrink: 0; }
+        .user-wrap { position: relative; flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
         .user-area {
             display: flex; align-items: center; gap: 9px;
             font-size: 13px; cursor: pointer;
@@ -802,6 +802,14 @@
             background-repeat: no-repeat;
             background-position: right 10px center;
             padding-right: 32px;
+            background-color: var(--glass-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        select.form-input option {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 8px;
         }
         
         /* 工具弹窗样式 */
@@ -907,6 +915,23 @@
         }
         .btn-secondary:hover {
             background: var(--bg-input);
+        }
+        
+        .btn-preset {
+            padding: 5px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--glass-card);
+            color: var(--text-dim);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .btn-preset:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+            color: var(--text-main);
         }
         
         /* 时间戳转换 */
@@ -1394,5 +1419,77 @@
         }
         .calc-zero-large {
             grid-column: span 2;
+        }
+
+        /* 反馈图标 */
+        .feedback-icon {
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            visibility: hidden;
+            opacity: 0;
+            flex-shrink: 0;
+            color: var(--text-dim);
+        }
+        .feedback-icon.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        .feedback-icon:hover {
+            color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        /* 图片上传容器 */
+        .image-upload-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .image-upload-box {
+            flex: 1;
+            aspect-ratio: 1;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            background: var(--glass-card);
+        }
+
+        .image-upload-box:hover {
+            border-color: var(--primary);
+            background: rgba(99,102,241,0.1);
+        }
+
+        .upload-placeholder {
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 12px;
+        }
+
+        .remove-image-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .remove-image-btn:hover {
+            background: rgba(239,68,68,0.9);
         }
     

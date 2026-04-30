@@ -22,7 +22,8 @@
                 hot: t.is_hot || false,
                 foreign: t.is_foreign || false,
                 uses: t.usage_count || 0,
-                url: t.url || '#'
+                url: t.url || '#',
+                type: t.type || t.tool_type || 1
             }));
             
             // 保存火热工具列表，后续渲染使用
@@ -37,10 +38,12 @@
                 hot: t.is_hot || true,
                 foreign: t.is_foreign || false,
                 uses: t.usage_count || 0,
-                url: t.url || '#'
+                url: t.url || '#',
+                type: t.type || t.tool_type || 1
             }));
             
             renderAll();
+            await loadFavorites();
         } catch (error) {
             console.error('加载数据失败:', error);
             // 如果加载失败，尝试从API加载
@@ -67,7 +70,8 @@
                     hot: t.is_hot || false,
                     foreign: t.is_foreign || false,
                     uses: t.usage_count || 0,
-                    url: t.url || '#'
+                    url: t.url || '#',
+                    type: t.type || t.tool_type || 1
                 }));
                 
                 window.hotTools = (hotToolsData.data || hotToolsData || []).map(t => ({
@@ -81,10 +85,12 @@
                     hot: t.is_hot || true,
                     foreign: t.is_foreign || false,
                     uses: t.usage_count || 0,
-                    url: t.url || '#'
+                    url: t.url || '#',
+                    type: t.type || t.tool_type || 1
                 }));
                 
                 renderAll();
+                await loadFavorites();
             } catch (error) {
                 console.error('API加载也失败:', error);
             }
@@ -196,6 +202,38 @@
         renderRecentBar();
     }
 
+    async function loadFavorites(){
+        const isLoggedIn = !!localStorage.getItem('admin_token');
+        
+        if(isLoggedIn){
+            // 已登录：从数据库获取收藏
+            try {
+                const response = await fetch('/api/admin/favorites', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+                    }
+                });
+                const result = await response.json();
+                if(result.data && result.data.length > 0){
+                    // 只保留存在的工具ID
+                    favorites = new Set();
+                    result.data.forEach(f => {
+                        if(f.tool && f.tool.id) {
+                            favorites.add(f.tool.id);
+                        }
+                    });
+                    saveFav();
+                }
+            } catch(error) {
+                console.error('获取收藏列表失败:', error);
+            }
+        }
+        // 清理无效收藏
+        cleanupInvalidFavorites();
+        updateBadge();
+    }
+
     // 清空浏览历史
     async function clearHistory(){
         const isLoggedIn = !!localStorage.getItem('admin_token');
@@ -279,10 +317,38 @@
         if(document.getElementById('view-fav').classList.contains('active')) renderFav();
     }
 
+    // 清理无效的收藏（已删除的工具）
+    function cleanupInvalidFavorites(){
+        const validFavorites = new Set();
+        const isLoggedIn = !!localStorage.getItem('admin_token');
+        
+        favorites.forEach(id => {
+            const tool = tools.find(t => t.id === id);
+            if(tool) {
+                validFavorites.add(id);
+            } else if(isLoggedIn) {
+                // 如果已登录，同时从后端删除无效收藏
+                fetch(`/api/admin/favorites/${id}`, {
+                    method: 'DELETE',
+                    headers: {'Authorization': 'Bearer ' + localStorage.getItem('admin_token')}
+                }).catch(e => console.log('清理无效收藏失败', e));
+            }
+        });
+        
+        if(validFavorites.size !== favorites.size) {
+            favorites = validFavorites;
+            saveFav();
+            console.log('已清理无效收藏');
+        }
+        return validFavorites;
+    }
+
     function updateBadge(){
         const b=document.getElementById('favBadge');
-        b.textContent=favorites.size;
-        b.style.display=favorites.size?'':'none';
+        // 只计算存在的工具
+        const validFavorites = cleanupInvalidFavorites();
+        b.textContent=validFavorites.size;
+        b.style.display=validFavorites.size?'':'none';
     }
 
     function fmtUses(n){
@@ -331,6 +397,8 @@
     }
 
     function renderFav(){
+        // 先清理无效收藏
+        cleanupInvalidFavorites();
         const favTools=tools.filter(t=>favorites.has(t.id));
         document.getElementById('emptyFav').style.display=favTools.length?'none':'flex';
         renderGrid('grid-fav', favTools);
@@ -454,22 +522,39 @@
 
     // 统一打开工具
     function openTool(tool) {
-        // 判断是否为外部链接工具（排除 '#' 和空值）
-        if (tool.url && tool.url.trim() !== '' && tool.url !== '#') {
-            // 有配置URL的工具：直接跳转到该URL（如JSON处理工具直接跳转到/json）
-            window.location.href = tool.url;
-        } else {
-            // 本地工具：在本站打开
-            // 更新页面 SEO 标签
-            updateSEOTags(tool);
-            
-            // 切换到工具详情视图
-            document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-            document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-            document.getElementById('view-tool').classList.add('active');
-            
-            // 渲染工具详情页面
-            renderToolPage(tool);
+        // 工具类型：1=外部链接，2=本站工具，3=本站链接
+        const type = tool.type || 1; // 默认为1（外部链接）
+        
+        switch(type) {
+            case 1:
+                // 类型1：外部链接工具，跳转到中间页
+                window.location.href = '/tool?id=' + tool.id;
+                break;
+                
+            case 2:
+                // 类型2：本站工具，在本站打开
+                // 更新页面 SEO 标签
+                updateSEOTags(tool);
+                
+                // 切换到工具详情视图
+                document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+                document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+                document.getElementById('view-tool').classList.add('active');
+                
+                // 渲染工具详情页面
+                renderToolPage(tool);
+                break;
+                
+            case 3:
+                // 类型3：本站链接，直接打开指定URL
+                if (tool.url && tool.url.trim() !== '') {
+                    window.location.href = '/' + tool.url;
+                }
+                break;
+                
+            default:
+                // 默认为外部链接
+                window.location.href = '/tool?id=' + tool.id;
         }
     }
     
@@ -530,9 +615,10 @@
         const isFav = favorites.has(tool.id);
         
         let toolContent = '';
+        const toolName = tool.name.replace(/\s/g, ''); // 去除所有空格，兼容数据库名称
         
-        switch (tool.name) {
-            case 'JSON 格式化':
+        switch (toolName) {
+            case 'JSON格式化':
                 toolContent = `
                     <div class="json-tool">
                         <div class="tool-section">
@@ -557,7 +643,7 @@
                     </div>
                 `;
                 break;
-            case 'Base64 编解码':
+            case 'Base64编码解码':
                 toolContent = `
                     <div class="json-tool">
                         <div class="tool-section">
@@ -608,7 +694,7 @@
                     </div>
                 `;
                 break;
-            case 'UUID 生成器':
+            case 'UUID生成器':
                 toolContent = `
                     <div class="json-tool">
                         <div class="tool-section">
@@ -618,6 +704,31 @@
                                 <button onclick="copyUUID()" class="btn-secondary">复制</button>
                             </div>
                             <textarea id="uuid-output" placeholder="点击上方按钮生成 UUID" readonly style="min-height:100px;"></textarea>
+                        </div>
+                    </div>
+                `;
+                break;
+            case '随机数生成器':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">随机数生成器</div>
+                            <div style="margin-bottom:16px;">
+                                <label>最小值：</label>
+                                <input type="number" id="random-min" value="0" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:16px;">
+                                <label>最大值：</label>
+                                <input type="number" id="random-max" value="100" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:16px;">
+                                <label><input type="checkbox" id="random-integer" checked> 整数</label>
+                            </div>
+                            <div class="tool-buttons" style="margin-bottom:20px;">
+                                <button onclick="generateRandomNumber()" class="btn-primary">生成随机数</button>
+                                <button onclick="copyRandomNumber()" class="btn-secondary">复制</button>
+                            </div>
+                            <input type="text" id="random-output" placeholder="点击上方按钮生成随机数" readonly style="width:100%;padding:16px;font-size:18px;font-family:monospace;">
                         </div>
                     </div>
                 `;
@@ -643,11 +754,11 @@
                     </div>
                 `;
                 break;
-            case '颜色转换':
+            case '颜色转换器':
                 toolContent = `
                     <div class="json-tool">
                         <div class="tool-section">
-                            <div class="tool-section-title">颜色转换</div>
+                            <div class="tool-section-title">颜色转换器</div>
                             <div class="color-picker-section" style="margin-bottom:20px;">
                                 <input type="color" id="color-picker" value="#6366f1" onchange="updateColorFromPicker()">
                                 <div id="color-preview" style="width:100px;height:100px;border-radius:16px;border:2px solid var(--border);"></div>
@@ -655,11 +766,11 @@
                             <div class="color-inputs">
                                 <div class="color-input">
                                     <label>HEX</label>
-                                    <input type="text" id="color-hex" value="#6366f1" oninput="updateColorFromHex()">
+                                    <input type="text" id="color-hex" value="#6366f1" oninput="updateColorFromHex()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
                                 </div>
                                 <div class="color-input">
                                     <label>RGB</label>
-                                    <input type="text" id="color-rgb" value="rgb(99, 102, 241)" oninput="updateColorFromRgb()">
+                                    <input type="text" id="color-rgb" value="rgb(99, 102, 241)" oninput="updateColorFromRgb()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
                                 </div>
                             </div>
                         </div>
@@ -746,6 +857,21 @@
                     <div class="json-tool">
                         <div class="tool-section">
                             <div class="tool-section-title">正则表达式测试</div>
+                            <div style="margin-bottom:12px;">
+                                <label>常用表达式：</label>
+                                <div class="regex-presets" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+                                    <button onclick="setRegexPreset('phone')" class="btn-preset">手机号</button>
+                                    <button onclick="setRegexPreset('email')" class="btn-preset">邮箱</button>
+                                    <button onclick="setRegexPreset('idcard')" class="btn-preset">身份证</button>
+                                    <button onclick="setRegexPreset('url')" class="btn-preset">URL</button>
+                                    <button onclick="setRegexPreset('ip')" class="btn-preset">IP地址</button>
+                                    <button onclick="setRegexPreset('date')" class="btn-preset">日期</button>
+                                    <button onclick="setRegexPreset('chinese')" class="btn-preset">中文字符</button>
+                                    <button onclick="setRegexPreset('number')" class="btn-preset">数字</button>
+                                    <button onclick="setRegexPreset('qq')" class="btn-preset">QQ号</button>
+                                    <button onclick="setRegexPreset('postcode')" class="btn-preset">邮编</button>
+                                </div>
+                            </div>
                             <div style="margin-bottom:16px;">
                                 <label>正则表达式：</label>
                                 <input type="text" id="regex-pattern" placeholder="输入正则表达式，如: /abc/g" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
@@ -846,28 +972,28 @@
                             <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
                                 <input type="number" id="currency-input" placeholder="输入金额" style="flex:1;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
                                 <select id="currency-from" style="padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
-                                    <option value="CNY">人民币 (CNY)</option>
-                                    <option value="USD">美元 (USD)</option>
-                                    <option value="EUR">欧元 (EUR)</option>
-                                    <option value="GBP">英镑 (GBP)</option>
-                                    <option value="JPY">日元 (JPY)</option>
-                                    <option value="KRW">韩元 (KRW)</option>
-                                    <option value="HKD">港币 (HKD)</option>
-                                    <option value="TWD">台币 (TWD)</option>
+                                    <option value="CNY" style="background:#0f172a;color:#e2e8f0;">人民币 (CNY)</option>
+                                    <option value="USD" style="background:#0f172a;color:#e2e8f0;">美元 (USD)</option>
+                                    <option value="EUR" style="background:#0f172a;color:#e2e8f0;">欧元 (EUR)</option>
+                                    <option value="GBP" style="background:#0f172a;color:#e2e8f0;">英镑 (GBP)</option>
+                                    <option value="JPY" style="background:#0f172a;color:#e2e8f0;">日元 (JPY)</option>
+                                    <option value="KRW" style="background:#0f172a;color:#e2e8f0;">韩元 (KRW)</option>
+                                    <option value="HKD" style="background:#0f172a;color:#e2e8f0;">港币 (HKD)</option>
+                                    <option value="TWD" style="background:#0f172a;color:#e2e8f0;">台币 (TWD)</option>
                                 </select>
                             </div>
                             <div style="text-align:center;margin-bottom:16px;">→</div>
                             <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
                                 <input type="text" id="currency-output" placeholder="结果" readonly style="flex:1;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
                                 <select id="currency-to" style="padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
-                                    <option value="USD">美元 (USD)</option>
-                                    <option value="EUR">欧元 (EUR)</option>
-                                    <option value="GBP">英镑 (GBP)</option>
-                                    <option value="JPY">日元 (JPY)</option>
-                                    <option value="KRW">韩元 (KRW)</option>
-                                    <option value="HKD">港币 (HKD)</option>
-                                    <option value="TWD">台币 (TWD)</option>
-                                    <option value="CNY">人民币 (CNY)</option>
+                                    <option value="USD" style="background:#0f172a;color:#e2e8f0;">美元 (USD)</option>
+                                    <option value="EUR" style="background:#0f172a;color:#e2e8f0;">欧元 (EUR)</option>
+                                    <option value="GBP" style="background:#0f172a;color:#e2e8f0;">英镑 (GBP)</option>
+                                    <option value="JPY" style="background:#0f172a;color:#e2e8f0;">日元 (JPY)</option>
+                                    <option value="KRW" style="background:#0f172a;color:#e2e8f0;">韩元 (KRW)</option>
+                                    <option value="HKD" style="background:#0f172a;color:#e2e8f0;">港币 (HKD)</option>
+                                    <option value="TWD" style="background:#0f172a;color:#e2e8f0;">台币 (TWD)</option>
+                                    <option value="CNY" style="background:#0f172a;color:#e2e8f0;">人民币 (CNY)</option>
                                 </select>
                             </div>
                             <div class="tool-buttons">
@@ -883,21 +1009,33 @@
                     <div class="json-tool">
                         <div class="tool-section">
                             <div class="tool-section-title">日期计算器</div>
-                            <div style="margin-bottom:16px;">
-                                <label>开始日期：</label>
-                                <input type="date" id="date-start" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
-                            </div>
-                            <div style="margin-bottom:16px;">
-                                <label>结束日期：</label>
-                                <input type="date" id="date-end" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
-                            </div>
-                            <div class="tool-buttons" style="margin-bottom:16px;">
-                                <button onclick="calcDateDiff()" class="btn-primary">计算天数差</button>
-                                <button onclick="addDays()" class="btn-secondary">添加天数</button>
-                            </div>
-                            <div style="padding:16px;border-radius:8px;border:1px solid var(--border);background:var(--card);">
-                                <p><strong>天数差：</strong><span id="date-result">0</span> 天</p>
-                                <p><strong>工作日：</strong><span id="workdays-result">0</span> 天</p>
+                            <div style="display:flex;gap:24px;">
+                                <div style="flex:1;">
+                                    <div style="margin-bottom:16px;">
+                                        <label style="display:block;margin-bottom:8px;">开始日期：</label>
+                                        <div style="position:relative;width:200px;">
+                                            <input type="date" id="date-start" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                            <button type="button" onclick="document.getElementById('date-start').showPicker()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;color:var(--primary);cursor:pointer;padding:4px;">📅</button>
+                                        </div>
+                                    </div>
+                                    <div style="margin-bottom:16px;">
+                                        <label style="display:block;margin-bottom:8px;">结束日期：</label>
+                                        <div style="position:relative;width:200px;">
+                                            <input type="date" id="date-end" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                            <button type="button" onclick="document.getElementById('date-end').showPicker()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;color:var(--primary);cursor:pointer;padding:4px;">📅</button>
+                                        </div>
+                                    </div>
+                                    <div class="tool-buttons" style="margin-bottom:16px;">
+                                        <button onclick="calcDateDiff()" class="btn-primary">计算天数差</button>
+                                        <button onclick="addDays()" class="btn-secondary">添加天数</button>
+                                    </div>
+                                </div>
+                                <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+                                    <div style="padding:24px;border-radius:12px;border:1px solid var(--border);background:var(--card);min-width:200px;">
+                                        <p style="font-size:16px;margin-bottom:12px;"><strong>天数差：</strong><span id="date-result" style="color:var(--primary);font-size:24px;">0</span> 天</p>
+                                        <p style="font-size:16px;"><strong>工作日：</strong><span id="workdays-result" style="color:var(--primary);font-size:24px;">0</span> 天</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -925,11 +1063,11 @@
                     </div>
                 `;
                 break;
-            case '二维码生成':
+            case '二维码生成器':
                 toolContent = `
                     <div class="json-tool">
                         <div class="tool-section">
-                            <div class="tool-section-title">二维码生成</div>
+                            <div class="tool-section-title">二维码生成器</div>
                             <div style="margin-bottom:16px;">
                                 <input type="text" id="qrcode-input" placeholder="输入网址、文本等内容" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
                             </div>
@@ -1073,6 +1211,399 @@
                                 <button onclick="copyMeta()" class="btn-secondary">复制代码</button>
                             </div>
                             <textarea id="meta-output" placeholder="Meta 标签代码将显示在这里" readonly style="width:100%;min-height:150px;padding:12px;font-family:monospace;font-size:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);"></textarea>
+                        </div>
+                    </div>
+                `;
+                break;
+            case '在线记事本':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">在线记事本</div>
+                            <div class="tool-buttons" style="margin-bottom:12px;">
+                                <button onclick="notepadNew()" class="btn-primary">新建</button>
+                                <button onclick="notepadSave()" class="btn-secondary">保存到本地</button>
+                                <button onclick="notepadLoad()" class="btn-secondary">从本地加载</button>
+                                <button onclick="notepadClear()" class="btn-secondary">清空</button>
+                            </div>
+                            <textarea id="notepad-content" placeholder="在这里记录你的想法..." style="width:100%;min-height:400px;padding:16px;font-size:14px;line-height:1.8;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);resize:vertical;"></textarea>
+                            <div style="margin-top:8px;color:var(--text-dim);font-size:12px;">
+                                字数：<span id="notepad-count">0</span> | 行数：<span id="notepad-lines">0</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case '待办清单':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">待办清单</div>
+                            <div style="display:flex;gap:12px;margin-bottom:16px;">
+                                <input type="text" id="todo-input" placeholder="添加新的待办事项..." style="flex:1;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                <button onclick="addTodo()" class="btn-primary">添加</button>
+                            </div>
+                            <div class="tool-buttons" style="margin-bottom:12px;">
+                                <button onclick="clearCompletedTodos()" class="btn-secondary">清除已完成</button>
+                                <button onclick="clearAllTodos()" class="btn-secondary">清空全部</button>
+                            </div>
+                            <div id="todo-list" style="max-height:400px;overflow-y:auto;"></div>
+                            <div style="margin-top:8px;color:var(--text-dim);font-size:12px;">
+                                共 <span id="todo-total">0</span> 项，已完成 <span id="todo-done">0</span> 项
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case '进制转换器':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">进制转换器</div>
+                            <div style="margin-bottom:12px;">
+                                <label>输入数值：</label>
+                                <input type="text" id="base-input" placeholder="输入数值" oninput="convertAllBases()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>输入进制：</label>
+                                <select id="base-from" onchange="convertAllBases()" style="padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                    <option value="2" style="background:#0f172a;color:#e2e8f0;">二进制 (2)</option>
+                                    <option value="8" style="background:#0f172a;color:#e2e8f0;">八进制 (8)</option>
+                                    <option value="10" selected style="background:#0f172a;color:#e2e8f0;">十进制 (10)</option>
+                                    <option value="16" style="background:#0f172a;color:#e2e8f0;">十六进制 (16)</option>
+                                </select>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div>
+                                    <label>二进制：</label>
+                                    <input type="text" id="base-bin" readonly style="width:100%;padding:10px;font-family:monospace;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                </div>
+                                <div>
+                                    <label>八进制：</label>
+                                    <input type="text" id="base-oct" readonly style="width:100%;padding:10px;font-family:monospace;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                </div>
+                                <div>
+                                    <label>十进制：</label>
+                                    <input type="text" id="base-dec" readonly style="width:100%;padding:10px;font-family:monospace;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                </div>
+                                <div>
+                                    <label>十六进制：</label>
+                                    <input type="text" id="base-hex" readonly style="width:100%;padding:10px;font-family:monospace;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'JSON转CSV':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">JSON 转 CSV</div>
+                            <div class="json-panels">
+                                <div class="json-panel">
+                                    <label>JSON 数据</label>
+                                    <textarea id="json2csv-input" placeholder='[{"name":"张三","age":25},{"name":"李四","age":30}]'></textarea>
+                                </div>
+                                <div class="json-panel">
+                                    <label>CSV 结果</label>
+                                    <textarea id="json2csv-output" placeholder="CSV结果将显示在这里" readonly></textarea>
+                                </div>
+                            </div>
+                            <div class="tool-buttons" style="margin-top:20px;">
+                                <button onclick="convertJsonToCsv()" class="btn-primary">转换</button>
+                                <button onclick="copyJsonToCsv()" class="btn-secondary">复制</button>
+                                <button onclick="downloadCsv()" class="btn-secondary">下载CSV</button>
+                                <button onclick="clearJsonToCsv()" class="btn-secondary">清空</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'Cron表达式':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">Cron 表达式</div>
+                            <div style="margin-bottom:16px;">
+                                <label>Cron 表达式：</label>
+                                <input type="text" id="cron-input" placeholder="* * * * *" oninput="parseCron()" style="width:100%;padding:12px;font-size:14px;font-family:monospace;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>常用示例：</label>
+                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+                                    <button onclick="setCronPreset('everyMinute')" class="btn-preset">每分钟</button>
+                                    <button onclick="setCronPreset('everyHour')" class="btn-preset">每小时</button>
+                                    <button onclick="setCronPreset('everyDay')" class="btn-preset">每天0点</button>
+                                    <button onclick="setCronPreset('everyWeek')" class="btn-preset">每周一0点</button>
+                                    <button onclick="setCronPreset('everyMonth')" class="btn-preset">每月1号0点</button>
+                                </div>
+                            </div>
+                            <div style="padding:16px;border-radius:8px;border:1px solid var(--border);background:var(--card);">
+                                <p><strong>解析结果：</strong><span id="cron-result">请输入Cron表达式</span></p>
+                                <p style="margin-top:8px;"><strong>下次执行时间：</strong></p>
+                                <div id="cron-next-times" style="color:var(--text-dim);font-size:13px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case '配色生成器':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">配色生成器</div>
+                            <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+                                <input type="color" id="palette-base" value="#6366f1" onchange="generatePalette()">
+                                <button onclick="generateRandomPalette()" class="btn-secondary">随机配色</button>
+                            </div>
+                            <div id="palette-colors" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;"></div>
+                            <div class="tool-buttons">
+                                <button onclick="copyPalette()" class="btn-secondary">复制色值</button>
+                                <button onclick="exportPaletteCSS()" class="btn-secondary">导出CSS变量</button>
+                            </div>
+                            <textarea id="palette-output" readonly style="width:100%;min-height:80px;margin-top:12px;padding:12px;font-family:monospace;font-size:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);"></textarea>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'SEO标题检测':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">SEO 标题检测</div>
+                            <div style="margin-bottom:16px;">
+                                <label>页面标题：</label>
+                                <input type="text" id="seo-title-input" placeholder="输入要检测的标题" oninput="analyzeSEOTitle()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="padding:16px;border-radius:8px;border:1px solid var(--border);background:var(--card);">
+                                <p><strong>标题长度：</strong><span id="seo-length">0</span> 字符</p>
+                                <p><strong>像素宽度：</strong>约 <span id="seo-pixels">0</span>px</p>
+                                <p><strong>评分：</strong><span id="seo-score">-</span></p>
+                                <div id="seo-suggestions" style="margin-top:8px;color:var(--text-dim);font-size:13px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'Sitemap生成器':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">Sitemap 生成器</div>
+                            <div style="margin-bottom:12px;">
+                                <label>网站域名：</label>
+                                <input type="text" id="sitemap-domain" placeholder="https://example.com" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>页面路径（每行一个）：</label>
+                                <textarea id="sitemap-urls" placeholder="/\n/about\n/contact\n/blog/post-1" style="width:100%;min-height:150px;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);"></textarea>
+                            </div>
+                            <div class="tool-buttons" style="margin-bottom:16px;">
+                                <button onclick="generateSitemap()" class="btn-primary">生成 Sitemap</button>
+                                <button onclick="copySitemap()" class="btn-secondary">复制</button>
+                                <button onclick="downloadSitemap()" class="btn-secondary">下载XML</button>
+                            </div>
+                            <textarea id="sitemap-output" readonly style="width:100%;min-height:200px;padding:12px;font-family:monospace;font-size:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);"></textarea>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'Robots生成器':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">Robots.txt 生成器</div>
+                            <div style="margin-bottom:12px;">
+                                <label><input type="checkbox" id="robots-allow-all" checked onchange="generateRobots()"> 允许所有爬虫</label>
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>禁止路径（每行一个）：</label>
+                                <textarea id="robots-disallow" placeholder="/admin\n/api\n/private" style="width:100%;min-height:100px;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);"></textarea>
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>Sitemap URL：</label>
+                                <input type="text" id="robots-sitemap" placeholder="https://example.com/sitemap.xml" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div class="tool-buttons" style="margin-bottom:16px;">
+                                <button onclick="generateRobots()" class="btn-primary">生成 Robots.txt</button>
+                                <button onclick="copyRobots()" class="btn-secondary">复制</button>
+                            </div>
+                            <textarea id="robots-output" readonly style="width:100%;min-height:150px;padding:12px;font-family:monospace;font-size:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);"></textarea>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'favicon生成器':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">Favicon 生成器</div>
+                            <div style="margin-bottom:16px;">
+                                <label>上传图片：</label>
+                                <input type="file" id="favicon-upload" accept="image/*" onchange="generateFavicon()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:16px;text-align:center;">
+                                <canvas id="favicon-canvas" style="display:none;"></canvas>
+                                <div id="favicon-preview" style="display:flex;gap:16px;justify-content:center;align-items:center;flex-wrap:wrap;"></div>
+                            </div>
+                            <div class="tool-buttons">
+                                <button onclick="downloadFavicon(16)" class="btn-secondary">下载 16x16</button>
+                                <button onclick="downloadFavicon(32)" class="btn-secondary">下载 32x32</button>
+                                <button onclick="downloadFavicon(64)" class="btn-secondary">下载 64x64</button>
+                                <button onclick="downloadFavicon(128)" class="btn-secondary">下载 128x128</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case '图片压缩':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">图片压缩</div>
+                            <div style="margin-bottom:16px;">
+                                <label>上传图片：</label>
+                                <input type="file" id="img-compress-upload" accept="image/*" onchange="loadCompressImage()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>压缩质量：<span id="compress-quality-val">80</span>%</label>
+                                <input type="range" id="compress-quality" min="10" max="100" value="80" oninput="document.getElementById('compress-quality-val').textContent=this.value;previewCompress()" style="width:100%;">
+                            </div>
+                            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+                                <div style="flex:1;min-width:200px;">
+                                    <p style="color:var(--text-dim);margin-bottom:8px;">原图</p>
+                                    <div id="compress-original-preview" style="text-align:center;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:150px;display:flex;align-items:center;justify-content:center;">
+                                        <span style="color:var(--text-dim);">请上传图片</span>
+                                    </div>
+                                    <p style="margin-top:4px;color:var(--text-dim);font-size:12px;">大小：<span id="compress-original-size">-</span></p>
+                                </div>
+                                <div style="flex:1;min-width:200px;">
+                                    <p style="color:var(--text-dim);margin-bottom:8px;">压缩后</p>
+                                    <div id="compress-result-preview" style="text-align:center;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:150px;display:flex;align-items:center;justify-content:center;">
+                                        <span style="color:var(--text-dim);">-</span>
+                                    </div>
+                                    <p style="margin-top:4px;color:var(--text-dim);font-size:12px;">大小：<span id="compress-result-size">-</span></p>
+                                </div>
+                            </div>
+                            <div class="tool-buttons">
+                                <button onclick="downloadCompressed()" class="btn-primary">下载压缩图片</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case '图片裁剪':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">图片裁剪</div>
+                            <div style="margin-bottom:16px;">
+                                <label>上传图片：</label>
+                                <input type="file" id="img-crop-upload" accept="image/*" onchange="loadCropImage()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+                                <div>
+                                    <label>X: <input type="number" id="crop-x" value="0" min="0" style="width:80px;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);"></label>
+                                </div>
+                                <div>
+                                    <label>Y: <input type="number" id="crop-y" value="0" min="0" style="width:80px;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);"></label>
+                                </div>
+                                <div>
+                                    <label>宽: <input type="number" id="crop-w" value="200" min="1" style="width:80px;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);"></label>
+                                </div>
+                                <div>
+                                    <label>高: <input type="number" id="crop-h" value="200" min="1" style="width:80px;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);"></label>
+                                </div>
+                            </div>
+                            <div style="margin-bottom:16px;text-align:center;">
+                                <canvas id="crop-canvas" style="max-width:100%;border-radius:8px;border:1px solid var(--border);"></canvas>
+                            </div>
+                            <div class="tool-buttons">
+                                <button onclick="applyCrop()" class="btn-primary">裁剪</button>
+                                <button onclick="downloadCropped()" class="btn-secondary">下载</button>
+                            </div>
+                            <div id="crop-result" style="margin-top:16px;text-align:center;"></div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case '图片格式转换':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">图片格式转换</div>
+                            <div style="margin-bottom:16px;">
+                                <label>上传图片：</label>
+                                <input type="file" id="img-convert-upload" accept="image/*" onchange="loadConvertImage()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>目标格式：</label>
+                                <select id="convert-format" style="padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                    <option value="image/png">PNG</option>
+                                    <option value="image/jpeg">JPEG</option>
+                                    <option value="image/webp">WebP</option>
+                                </select>
+                            </div>
+                            <div style="text-align:center;margin-bottom:16px;">
+                                <div id="convert-preview" style="padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:150px;display:flex;align-items:center;justify-content:center;">
+                                    <span style="color:var(--text-dim);">请上传图片</span>
+                                </div>
+                            </div>
+                            <div class="tool-buttons">
+                                <button onclick="convertImageFormat()" class="btn-primary">转换格式</button>
+                                <button onclick="downloadConverted()" class="btn-secondary">下载</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case '简历生成器':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">简历生成器</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                                <div>
+                                    <label>姓名：</label>
+                                    <input type="text" id="resume-name" placeholder="张三" style="width:100%;padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                </div>
+                                <div>
+                                    <label>职位：</label>
+                                    <input type="text" id="resume-title" placeholder="前端工程师" style="width:100%;padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                                <div>
+                                    <label>电话：</label>
+                                    <input type="text" id="resume-phone" placeholder="138xxxx" style="width:100%;padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                </div>
+                                <div>
+                                    <label>邮箱：</label>
+                                    <input type="text" id="resume-email" placeholder="example@mail.com" style="width:100%;padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                </div>
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>个人简介：</label>
+                                <textarea id="resume-summary" placeholder="简要介绍自己..." style="width:100%;min-height:80px;padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);"></textarea>
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>技能（逗号分隔）：</label>
+                                <input type="text" id="resume-skills" placeholder="JavaScript, React, Node.js" style="width:100%;padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>工作经历（每行一条）：</label>
+                                <textarea id="resume-experience" placeholder="2020-2023 XX公司 前端工程师&#10;负责XX项目开发..." style="width:100%;min-height:100px;padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);"></textarea>
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>教育背景：</label>
+                                <input type="text" id="resume-education" placeholder="2016-2020 XX大学 计算机科学 本科" style="width:100%;padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div class="tool-buttons">
+                                <button onclick="generateResume()" class="btn-primary">生成简历</button>
+                                <button onclick="printResume()" class="btn-secondary">打印</button>
+                            </div>
+                            <div id="resume-output" style="margin-top:16px;padding:24px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:200px;"></div>
                         </div>
                     </div>
                 `;
@@ -1254,12 +1785,17 @@
             let hexChars = '0123456789abcdef';
             let result = '';
             for (let i = 0; i < 4; i++) {
-                result += hexChars[(n >> (8 * (3 - i))) & 0xff];
+                result += hexChars[(n >> (i * 8)) & 0xff];
             }
             return result;
         };
         
-        const s = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21];
+        const s = [
+            7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+            5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
+            4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+            6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
+        ];
         const K = [];
         for (let i = 0; i < 64; i++) {
             K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296);
@@ -1270,24 +1806,28 @@
         let c0 = 0x98BADCFE;
         let d0 = 0x10325476;
         
-        str += String.fromCharCode(0x80);
-        while (str.length % 64 !== 56) {
-            str += String.fromCharCode(0x00);
+        const originalLengthBits = str.length * 8;
+        const bytes = [];
+        for (let i = 0; i < str.length; i++) {
+            bytes.push(str.charCodeAt(i) & 0xff);
         }
-        const lengthBits = (str.length - 1) * 8;
-        str += String.fromCharCode(0x00, 0x00, 0x00, 0x00);
-        str += String.fromCharCode((lengthBits >> 24) & 0xff);
-        str += String.fromCharCode((lengthBits >> 16) & 0xff);
-        str += String.fromCharCode((lengthBits >> 8) & 0xff);
-        str += String.fromCharCode(lengthBits & 0xff);
         
-        for (let i = 0; i < str.length; i += 64) {
+        bytes.push(0x80);
+        while ((bytes.length * 8) % 512 !== 448) {
+            bytes.push(0x00);
+        }
+        
+        for (let i = 0; i < 8; i++) {
+            bytes.push((originalLengthBits >>> (i * 8)) & 0xff);
+        }
+        
+        for (let i = 0; i < bytes.length; i += 64) {
             const M = [];
             for (let j = 0; j < 16; j++) {
-                M[j] = (str.charCodeAt(i + j * 4)) |
-                        (str.charCodeAt(i + j * 4 + 1) << 8) |
-                        (str.charCodeAt(i + j * 4 + 2) << 16) |
-                        (str.charCodeAt(i + j * 4 + 3) << 24);
+                M[j] = bytes[i + j * 4] |
+                        (bytes[i + j * 4 + 1] << 8) |
+                        (bytes[i + j * 4 + 2] << 16) |
+                        (bytes[i + j * 4 + 3] << 24);
             }
             
             let A = a0, B = b0, C = c0, D = d0;
@@ -1311,7 +1851,7 @@
                 const dTemp = D;
                 D = C;
                 C = B;
-                B = B + rotateLeft((A + F + K[j] + M[g]) >>> 0, s[j % 4]);
+                B = (B + rotateLeft((A + F + K[j] + M[g]) >>> 0, s[j])) >>> 0;
                 A = dTemp;
             }
             
@@ -1339,6 +1879,28 @@
     }
     
     // 正则表达式测试
+    function setRegexPreset(type) {
+        const presets = {
+            phone: { pattern: '/^1[3-9]\\d{9}$/', text: '13800138000' },
+            email: { pattern: '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/', text: 'example@mail.com' },
+            idcard: { pattern: '/^[1-9]\\d{5}(18|19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx]$/', text: '110101199001011234' },
+            url: { pattern: '/^https?:\\/\\/[\\w.-]+(:\\d+)?(\\/[\\w./%-]*)?$/', text: 'https://www.example.com/path' },
+            ip: { pattern: '/^((25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)$/', text: '192.168.1.1' },
+            date: { pattern: '/^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$/', text: '2024-01-15' },
+            chinese: { pattern: '/[\\u4e00-\\u9fa5]/', text: 'Hello世界Test' },
+            number: { pattern: '/^-?\\d+(\\.\\d+)?$/', text: '123.45' },
+            qq: { pattern: '/^[1-9]\\d{4,10}$/', text: '123456789' },
+            postcode: { pattern: '/^[1-9]\\d{5}$/', text: '100000' }
+        };
+        
+        const preset = presets[type];
+        if (preset) {
+            document.getElementById('regex-pattern').value = preset.pattern;
+            document.getElementById('regex-text').value = preset.text;
+            testRegex();
+        }
+    }
+    
     function testRegex() {
         const pattern = document.getElementById('regex-pattern').value;
         const text = document.getElementById('regex-text').value;
@@ -2317,7 +2879,12 @@
         const ts = document.getElementById('timestamp-input').value;
         if (ts) {
             const date = new Date(ts * 1000);
-            document.getElementById('datetime-input').value = date.toISOString().slice(0, 16);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            document.getElementById('datetime-input').value = `${year}-${month}-${day}T${hours}:${minutes}`;
         }
     }
     
@@ -2347,6 +2914,41 @@
     
     function copyUUID() {
         const output = document.getElementById('uuid-output');
+        if (output.value) {
+            output.select();
+            document.execCommand('copy');
+            alert('已复制到剪贴板');
+        }
+    }
+    
+    // 随机数生成器
+    function generateRandomNumber() {
+        const min = parseFloat(document.getElementById('random-min').value);
+        const max = parseFloat(document.getElementById('random-max').value);
+        const isInteger = document.getElementById('random-integer').checked;
+        
+        if (isNaN(min) || isNaN(max)) {
+            alert('请输入有效的数字');
+            return;
+        }
+        
+        if (min > max) {
+            alert('最小值不能大于最大值');
+            return;
+        }
+        
+        let result;
+        if (isInteger) {
+            result = Math.floor(Math.random() * (max - min + 1)) + min;
+        } else {
+            result = (Math.random() * (max - min) + min).toFixed(4);
+        }
+        
+        document.getElementById('random-output').value = result;
+    }
+    
+    function copyRandomNumber() {
+        const output = document.getElementById('random-output');
         if (output.value) {
             output.select();
             document.execCommand('copy');
@@ -2497,6 +3099,7 @@
         const ha = document.getElementById('headerAvatar');
         const headerName = document.getElementById('headerName');
         const dropArrow = document.getElementById('dropArrow');
+        const feedbackIcon = document.getElementById('feedbackIcon');
 
         if(!isLoggedIn){
             // 未登录：显示空白头像
@@ -2507,7 +3110,15 @@
             if(dropArrow){
                 dropArrow.style.display = 'none';
             }
+            if(feedbackIcon){
+                feedbackIcon.classList.remove('show');
+            }
             return;
+        }
+        
+        // 已登录：显示反馈图标
+        if(feedbackIcon){
+            feedbackIcon.classList.add('show');
         }
 
         // 已登录：显示用户信息
@@ -3528,5 +4139,788 @@
         } catch (error) {
             console.error('生成静态数据失败:', error);
             alert('生成失败，请稍后重试');
+        }
+    }
+
+    /* ══ 在线记事本 ══ */
+    function notepadNew() {
+        if (document.getElementById('notepad-content').value && !confirm('当前内容未保存，确定新建吗？')) return;
+        document.getElementById('notepad-content').value = '';
+        updateNotepadStats();
+    }
+    function notepadSave() {
+        const content = document.getElementById('notepad-content').value;
+        const blob = new Blob([content], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'notepad_' + new Date().toISOString().slice(0, 10) + '.txt';
+        a.click();
+    }
+    function notepadLoad() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.txt,.md,.json,.js,.html,.css';
+        input.onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                document.getElementById('notepad-content').value = ev.target.result;
+                updateNotepadStats();
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+    function notepadClear() {
+        if (confirm('确定清空所有内容吗？')) {
+            document.getElementById('notepad-content').value = '';
+            updateNotepadStats();
+        }
+    }
+    function updateNotepadStats() {
+        const content = document.getElementById('notepad-content').value;
+        document.getElementById('notepad-count').textContent = content.length;
+        document.getElementById('notepad-lines').textContent = content.split('\n').length;
+    }
+
+    /* ══ 待办清单 ══ */
+    let todoItems = JSON.parse(localStorage.getItem('todo_items') || '[]');
+    function renderTodoList() {
+        const list = document.getElementById('todo-list');
+        list.innerHTML = todoItems.map((item, i) => `
+            <div class="todo-item" style="display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:6px;border-radius:8px;border:1px solid var(--border);background:var(--card);">
+                <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleTodo(${i})" style="width:18px;height:18px;cursor:pointer;">
+                <span style="flex:1;${item.done ? 'text-decoration:line-through;color:var(--text-dim);' : ''}">${escapeHtml(item.text)}</span>
+                <button onclick="deleteTodo(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;">✕</button>
+            </div>
+        `).join('');
+        document.getElementById('todo-total').textContent = todoItems.length;
+        document.getElementById('todo-done').textContent = todoItems.filter(t => t.done).length;
+    }
+    function addTodo() {
+        const input = document.getElementById('todo-input');
+        const text = input.value.trim();
+        if (!text) return;
+        todoItems.push({ text, done: false });
+        input.value = '';
+        saveTodos();
+        renderTodoList();
+    }
+    function toggleTodo(i) {
+        todoItems[i].done = !todoItems[i].done;
+        saveTodos();
+        renderTodoList();
+    }
+    function deleteTodo(i) {
+        todoItems.splice(i, 1);
+        saveTodos();
+        renderTodoList();
+    }
+    function clearCompletedTodos() {
+        todoItems = todoItems.filter(t => !t.done);
+        saveTodos();
+        renderTodoList();
+    }
+    function clearAllTodos() {
+        if (confirm('确定清空所有待办事项吗？')) {
+            todoItems = [];
+            saveTodos();
+            renderTodoList();
+        }
+    }
+    function saveTodos() {
+        localStorage.setItem('todo_items', JSON.stringify(todoItems));
+    }
+
+    /* ══ 进制转换器 ══ */
+    function convertAllBases() {
+        const input = document.getElementById('base-input').value.trim();
+        const fromBase = parseInt(document.getElementById('base-from').value);
+        if (!input) {
+            document.getElementById('base-bin').value = '';
+            document.getElementById('base-oct').value = '';
+            document.getElementById('base-dec').value = '';
+            document.getElementById('base-hex').value = '';
+            return;
+        }
+        try {
+            const num = parseInt(input, fromBase);
+            if (isNaN(num)) throw new Error('无效输入');
+            document.getElementById('base-bin').value = num.toString(2);
+            document.getElementById('base-oct').value = num.toString(8);
+            document.getElementById('base-dec').value = num.toString(10);
+            document.getElementById('base-hex').value = num.toString(16).toUpperCase();
+        } catch (e) {
+            document.getElementById('base-bin').value = '错误';
+            document.getElementById('base-oct').value = '错误';
+            document.getElementById('base-dec').value = '错误';
+            document.getElementById('base-hex').value = '错误';
+        }
+    }
+
+    /* ══ JSON转CSV ══ */
+    function convertJsonToCsv() {
+        const input = document.getElementById('json2csv-input').value.trim();
+        if (!input) return;
+        try {
+            const data = JSON.parse(input);
+            const arr = Array.isArray(data) ? data : [data];
+            if (arr.length === 0) {
+                document.getElementById('json2csv-output').value = '';
+                return;
+            }
+            const headers = Object.keys(arr[0]);
+            let csv = headers.join(',') + '\n';
+            arr.forEach(row => {
+                csv += headers.map(h => {
+                    let val = row[h];
+                    if (val === null || val === undefined) val = '';
+                    val = String(val);
+                    if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+                        val = '"' + val.replace(/"/g, '""') + '"';
+                    }
+                    return val;
+                }).join(',') + '\n';
+            });
+            document.getElementById('json2csv-output').value = csv;
+        } catch (e) {
+            alert('JSON 格式错误: ' + e.message);
+        }
+    }
+    function copyJsonToCsv() {
+        const output = document.getElementById('json2csv-output');
+        if (output.value) { output.select(); document.execCommand('copy'); alert('已复制'); }
+    }
+    function downloadCsv() {
+        const output = document.getElementById('json2csv-output').value;
+        if (!output) return;
+        const blob = new Blob(['\uFEFF' + output], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'data.csv';
+        a.click();
+    }
+    function clearJsonToCsv() {
+        document.getElementById('json2csv-input').value = '';
+        document.getElementById('json2csv-output').value = '';
+    }
+
+    /* ══ Cron表达式 ══ */
+    function setCronPreset(type) {
+        const presets = {
+            everyMinute: '* * * * *',
+            everyHour: '0 * * * *',
+            everyDay: '0 0 * * *',
+            everyWeek: '0 0 * * 1',
+            everyMonth: '0 0 1 * *'
+        };
+        document.getElementById('cron-input').value = presets[type] || '';
+        parseCron();
+    }
+    function parseCron() {
+        const expr = document.getElementById('cron-input').value.trim();
+        const resultEl = document.getElementById('cron-result');
+        const nextEl = document.getElementById('cron-next-times');
+        if (!expr) {
+            resultEl.textContent = '请输入Cron表达式';
+            nextEl.innerHTML = '';
+            return;
+        }
+        const parts = expr.split(/\s+/);
+        if (parts.length < 5) {
+            resultEl.textContent = '格式错误：需要5个字段（分 时 日 月 周）';
+            nextEl.innerHTML = '';
+            return;
+        }
+        const labels = ['分钟', '小时', '日期', '月份', '星期'];
+        const descriptions = parts.slice(0, 5).map((p, i) => {
+            if (p === '*') return '每' + labels[i];
+            if (p.includes(',')) return p.split(',').join(',') + labels[i];
+            if (p.includes('/')) {
+                const [range, step] = p.split('/');
+                return (range === '*' ? '每' : '从' + range + '开始') + step + labels[i] + '一次';
+            }
+            if (p.includes('-')) {
+                const [s, e] = p.split('-');
+                return labels[i] + '从' + s + '到' + e;
+            }
+            return labels[i] + '=' + p;
+        });
+        resultEl.textContent = descriptions.join('，');
+        
+        const now = new Date();
+        const times = [];
+        let testDate = new Date(now);
+        for (let i = 0; i < 5; i++) {
+            testDate = new Date(testDate.getTime() + 60000);
+            testDate.setSeconds(0);
+            times.push(testDate.toLocaleString('zh-CN'));
+        }
+        nextEl.innerHTML = times.map(t => '<div>• ' + t + '</div>').join('');
+    }
+
+    /* ══ 配色生成器 ══ */
+    function generatePalette() {
+        const baseHex = document.getElementById('palette-base').value;
+        const baseRgb = hexToRgb(baseHex);
+        const baseHsl = rgbToHsl(baseRgb.r, baseRgb.g, baseRgb.b);
+        const colors = [];
+        for (let i = 0; i < 6; i++) {
+            const h = (baseHsl.h + i * 60) % 360;
+            const s = Math.min(100, baseHsl.s + (i % 2 === 0 ? 10 : -5));
+            const l = Math.min(90, Math.max(10, baseHsl.l + (i - 2) * 8));
+            colors.push(hslToHex(h, s, l));
+        }
+        renderPalette(colors);
+    }
+    function generateRandomPalette() {
+        const h = Math.floor(Math.random() * 360);
+        const colors = [];
+        for (let i = 0; i < 6; i++) {
+            colors.push(hslToHex((h + i * 60) % 360, 60 + Math.random() * 20, 45 + Math.random() * 20));
+        }
+        document.getElementById('palette-base').value = colors[0];
+        renderPalette(colors);
+    }
+    function renderPalette(colors) {
+        const container = document.getElementById('palette-colors');
+        container.innerHTML = colors.map(c => `
+            <div style="flex:1;min-width:80px;text-align:center;">
+                <div style="width:100%;height:60px;border-radius:8px;background:${c};border:1px solid var(--border);"></div>
+                <span style="font-size:11px;font-family:monospace;color:var(--text-dim);">${c}</span>
+            </div>
+        `).join('');
+        document.getElementById('palette-output').value = colors.join(', ');
+    }
+    function copyPalette() {
+        const val = document.getElementById('palette-output').value;
+        if (val) { navigator.clipboard.writeText(val).then(() => alert('已复制')); }
+    }
+    function exportPaletteCSS() {
+        const colors = document.getElementById('palette-output').value.split(', ');
+        let css = ':root {\n';
+        colors.forEach((c, i) => { css += `  --color-${i + 1}: ${c};\n`; });
+        css += '}';
+        document.getElementById('palette-output').value = css;
+    }
+    function hexToRgb(hex) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return { r, g, b };
+    }
+    function rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h = 0, s = 0, l = (max + min) / 2;
+        if (max !== min) {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                case g: h = ((b - r) / d + 2) / 6; break;
+                case b: h = ((r - g) / d + 4) / 6; break;
+            }
+        }
+        return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+    }
+    function hslToHex(h, s, l) {
+        s /= 100; l /= 100;
+        const a = s * Math.min(l, 1 - l);
+        const f = n => {
+            const k = (n + h / 30) % 12;
+            const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+            return Math.round(255 * color).toString(16).padStart(2, '0');
+        };
+        return '#' + f(0) + f(8) + f(4);
+    }
+
+    /* ══ SEO标题检测 ══ */
+    function analyzeSEOTitle() {
+        const title = document.getElementById('seo-title-input').value;
+        document.getElementById('seo-length').textContent = title.length;
+        document.getElementById('seo-pixels').textContent = Math.round(title.length * 14);
+        const suggestions = [];
+        let score = 100;
+        if (title.length < 10) { score -= 30; suggestions.push('标题太短，建议10-60个字符'); }
+        else if (title.length > 60) { score -= 20; suggestions.push('标题过长，建议控制在60个字符以内'); }
+        else if (title.length >= 15 && title.length <= 40) { suggestions.push('标题长度适中'); }
+        if (!title) { score = 0; suggestions.push('请输入标题'); }
+        document.getElementById('seo-score').textContent = score + '/100';
+        document.getElementById('seo-suggestions').innerHTML = suggestions.map(s => '• ' + s).join('<br>');
+    }
+
+    /* ══ Sitemap生成器 ══ */
+    function generateSitemap() {
+        const domain = document.getElementById('sitemap-domain').value.trim().replace(/\/$/, '');
+        const urls = document.getElementById('sitemap-urls').value.trim().split('\n').filter(u => u.trim());
+        if (!domain) { alert('请输入网站域名'); return; }
+        if (!urls.length) { alert('请输入页面路径'); return; }
+        const today = new Date().toISOString().slice(0, 10);
+        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+        urls.forEach(url => {
+            const fullUrl = domain + (url.startsWith('/') ? url : '/' + url);
+            xml += '  <url>\n';
+            xml += `    <loc>${fullUrl}</loc>\n`;
+            xml += `    <lastmod>${today}</lastmod>\n`;
+            xml += '    <changefreq>weekly</changefreq>\n';
+            xml += '    <priority>0.8</priority>\n';
+            xml += '  </url>\n';
+        });
+        xml += '</urlset>';
+        document.getElementById('sitemap-output').value = xml;
+    }
+    function copySitemap() {
+        const output = document.getElementById('sitemap-output');
+        if (output.value) { output.select(); document.execCommand('copy'); alert('已复制'); }
+    }
+    function downloadSitemap() {
+        const output = document.getElementById('sitemap-output').value;
+        if (!output) return;
+        const blob = new Blob([output], { type: 'application/xml' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'sitemap.xml';
+        a.click();
+    }
+
+    /* ══ Robots生成器 ══ */
+    function generateRobots() {
+        const allowAll = document.getElementById('robots-allow-all').checked;
+        const disallowPaths = document.getElementById('robots-disallow').value.trim().split('\n').filter(p => p.trim());
+        const sitemap = document.getElementById('robots-sitemap').value.trim();
+        let txt = 'User-agent: *\n';
+        if (allowAll) {
+            txt += 'Allow: /\n';
+            disallowPaths.forEach(p => { txt += 'Disallow: ' + p.trim() + '\n'; });
+        } else {
+            txt += 'Disallow: /\n';
+        }
+        if (sitemap) txt += '\nSitemap: ' + sitemap + '\n';
+        document.getElementById('robots-output').value = txt;
+    }
+    function copyRobots() {
+        const output = document.getElementById('robots-output');
+        if (output.value) { output.select(); document.execCommand('copy'); alert('已复制'); }
+    }
+
+    /* ══ Favicon生成器 ══ */
+    let faviconImage = null;
+    function generateFavicon() {
+        const file = document.getElementById('favicon-upload').files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                faviconImage = img;
+                const preview = document.getElementById('favicon-preview');
+                const sizes = [16, 32, 64, 128];
+                preview.innerHTML = sizes.map(s => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = s; canvas.height = s;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, s, s);
+                    return `<div style="text-align:center;">
+                        <img src="${canvas.toDataURL()}" style="width:${s}px;height:${s}px;border-radius:4px;border:1px solid var(--border);">
+                        <div style="font-size:10px;color:var(--text-dim);">${s}x${s}</div>
+                    </div>`;
+                }).join('');
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    function downloadFavicon(size) {
+        if (!faviconImage) { alert('请先上传图片'); return; }
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(faviconImage, 0, 0, size, size);
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = `favicon-${size}x${size}.png`;
+        a.click();
+    }
+
+    /* ══ 图片压缩 ══ */
+    let compressOriginalImage = null;
+    let compressOriginalSize = 0;
+    function loadCompressImage() {
+        const file = document.getElementById('img-compress-upload').files[0];
+        if (!file) return;
+        compressOriginalSize = file.size;
+        document.getElementById('compress-original-size').textContent = formatFileSize(file.size);
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                compressOriginalImage = img;
+                const preview = document.getElementById('compress-original-preview');
+                preview.innerHTML = '';
+                const clone = img.cloneNode();
+                clone.style.maxWidth = '100%';
+                clone.style.maxHeight = '200px';
+                clone.style.borderRadius = '8px';
+                preview.appendChild(clone);
+                previewCompress();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    function previewCompress() {
+        if (!compressOriginalImage) return;
+        const quality = parseInt(document.getElementById('compress-quality').value) / 100;
+        const canvas = document.createElement('canvas');
+        canvas.width = compressOriginalImage.width;
+        canvas.height = compressOriginalImage.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(compressOriginalImage, 0, 0);
+        canvas.toBlob(function(blob) {
+            document.getElementById('compress-result-size').textContent = formatFileSize(blob.size);
+            const preview = document.getElementById('compress-result-preview');
+            preview.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(blob);
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '200px';
+            img.style.borderRadius = '8px';
+            preview.appendChild(img);
+        }, 'image/jpeg', quality);
+    }
+    function downloadCompressed() {
+        if (!compressOriginalImage) { alert('请先上传图片'); return; }
+        const quality = parseInt(document.getElementById('compress-quality').value) / 100;
+        const canvas = document.createElement('canvas');
+        canvas.width = compressOriginalImage.width;
+        canvas.height = compressOriginalImage.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(compressOriginalImage, 0, 0);
+        canvas.toBlob(function(blob) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'compressed.jpg';
+            a.click();
+        }, 'image/jpeg', quality);
+    }
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    /* ══ 图片裁剪 ══ */
+    let cropImage = null;
+    function loadCropImage() {
+        const file = document.getElementById('img-crop-upload').files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                cropImage = img;
+                const canvas = document.getElementById('crop-canvas');
+                const maxW = Math.min(img.width, 500);
+                const scale = maxW / img.width;
+                canvas.width = maxW;
+                canvas.height = img.height * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                document.getElementById('crop-w').value = Math.round(canvas.width / 2);
+                document.getElementById('crop-h').value = Math.round(canvas.height / 2);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    function applyCrop() {
+        if (!cropImage) { alert('请先上传图片'); return; }
+        const x = parseInt(document.getElementById('crop-x').value) || 0;
+        const y = parseInt(document.getElementById('crop-y').value) || 0;
+        const w = parseInt(document.getElementById('crop-w').value) || 100;
+        const h = parseInt(document.getElementById('crop-h').value) || 100;
+        const canvas = document.getElementById('crop-canvas');
+        const scale = cropImage.width / canvas.width;
+        const sx = x * scale, sy = y * scale, sw = w * scale, sh = h * scale;
+        const resultCanvas = document.createElement('canvas');
+        resultCanvas.width = w; resultCanvas.height = h;
+        const ctx = resultCanvas.getContext('2d');
+        ctx.drawImage(cropImage, sx, sy, sw, sh, 0, 0, w, h);
+        const resultDiv = document.getElementById('crop-result');
+        resultDiv.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = resultCanvas.toDataURL();
+        img.style.maxWidth = '100%';
+        img.style.borderRadius = '8px';
+        img.style.border = '1px solid var(--border)';
+        resultDiv.appendChild(img);
+        resultDiv.dataset.dataUrl = resultCanvas.toDataURL();
+    }
+    function downloadCropped() {
+        const resultDiv = document.getElementById('crop-result');
+        const dataUrl = resultDiv.dataset.dataUrl;
+        if (!dataUrl) { alert('请先裁剪图片'); return; }
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'cropped.png';
+        a.click();
+    }
+
+    /* ══ 图片格式转换 ══ */
+    let convertImage = null;
+    function loadConvertImage() {
+        const file = document.getElementById('img-convert-upload').files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                convertImage = img;
+                const preview = document.getElementById('convert-preview');
+                preview.innerHTML = '';
+                const clone = img.cloneNode();
+                clone.style.maxWidth = '100%';
+                clone.style.maxHeight = '200px';
+                clone.style.borderRadius = '8px';
+                preview.appendChild(clone);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    function convertImageFormat() {
+        if (!convertImage) { alert('请先上传图片'); return; }
+        const format = document.getElementById('convert-format').value;
+        const canvas = document.createElement('canvas');
+        canvas.width = convertImage.width;
+        canvas.height = convertImage.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(convertImage, 0, 0);
+        const dataUrl = canvas.toDataURL(format);
+        const preview = document.getElementById('convert-preview');
+        preview.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '200px';
+        img.style.borderRadius = '8px';
+        preview.appendChild(img);
+        preview.dataset.dataUrl = dataUrl;
+        const ext = format.split('/')[1];
+        preview.dataset.ext = ext === 'jpeg' ? 'jpg' : ext;
+    }
+    function downloadConverted() {
+        const preview = document.getElementById('convert-preview');
+        const dataUrl = preview.dataset.dataUrl;
+        if (!dataUrl) { alert('请先转换格式'); return; }
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'converted.' + (preview.dataset.ext || 'png');
+        a.click();
+    }
+
+    /* ══ 简历生成器 ══ */
+    function generateResume() {
+        const name = document.getElementById('resume-name').value || '未填写';
+        const title = document.getElementById('resume-title').value || '';
+        const phone = document.getElementById('resume-phone').value || '';
+        const email = document.getElementById('resume-email').value || '';
+        const summary = document.getElementById('resume-summary').value || '';
+        const skills = document.getElementById('resume-skills').value || '';
+        const experience = document.getElementById('resume-experience').value || '';
+        const education = document.getElementById('resume-education').value || '';
+        
+        const html = `
+            <div style="font-family:'PingFang SC','Microsoft YaHei',sans-serif;color:var(--text);">
+                <div style="text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--primary);">
+                    <h2 style="margin:0;font-size:24px;">${escapeHtml(name)}</h2>
+                    ${title ? `<p style="margin:4px 0 0;color:var(--text-dim);font-size:16px;">${escapeHtml(title)}</p>` : ''}
+                    <p style="margin:8px 0 0;color:var(--text-dim);font-size:13px;">
+                        ${phone ? escapeHtml(phone) + ' | ' : ''}${email ? escapeHtml(email) : ''}
+                    </p>
+                </div>
+                ${summary ? `
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:16px;color:var(--primary);margin-bottom:8px;">个人简介</h3>
+                    <p style="line-height:1.8;color:var(--text-dim);">${escapeHtml(summary)}</p>
+                </div>` : ''}
+                ${skills ? `
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:16px;color:var(--primary);margin-bottom:8px;">技能</h3>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                        ${skills.split(',').map(s => `<span style="padding:4px 12px;border-radius:12px;background:rgba(99,102,241,0.15);color:var(--text);font-size:13px;">${escapeHtml(s.trim())}</span>`).join('')}
+                    </div>
+                </div>` : ''}
+                ${experience ? `
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:16px;color:var(--primary);margin-bottom:8px;">工作经历</h3>
+                    ${experience.split('\n').filter(e => e.trim()).map(e => `<p style="line-height:1.8;color:var(--text-dim);margin-bottom:8px;">${escapeHtml(e)}</p>`).join('')}
+                </div>` : ''}
+                ${education ? `
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:16px;color:var(--primary);margin-bottom:8px;">教育背景</h3>
+                    <p style="line-height:1.8;color:var(--text-dim);">${escapeHtml(education)}</p>
+                </div>` : ''}
+            </div>
+        `;
+        document.getElementById('resume-output').innerHTML = html;
+    }
+    function printResume() {
+        const content = document.getElementById('resume-output').innerHTML;
+        if (!content.trim()) { alert('请先生成简历'); return; }
+        const win = window.open('', '_blank');
+        win.document.write(`
+            <html><head><title>简历</title>
+            <style>
+                body { font-family: 'PingFang SC','Microsoft YaHei',sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #333; }
+                h2 { font-size: 24px; } h3 { font-size: 16px; color: #6366f1; }
+            </style></head><body>${content}</body></html>
+        `);
+        win.document.close();
+        setTimeout(() => win.print(), 500);
+    }
+    
+    /* ══ 反馈功能 ══ */
+    
+    async function openFeedbackModal() {
+        if (!isAdminLoggedIn()) {
+            alert('请先登录后再提交反馈');
+            showLoginModal();
+            return;
+        }
+        
+        // 获取剩余反馈次数
+        try {
+            const token = localStorage.getItem('admin_token');
+            const response = await fetch('/api/feedback/remaining', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (response.ok && data.remaining !== undefined) {
+                document.getElementById('feedbackRemaining').textContent = `今日还可提交 ${data.remaining} 次反馈`;
+            } else {
+                document.getElementById('feedbackRemaining').textContent = '今日还可提交 5 次反馈';
+            }
+        } catch (error) {
+            document.getElementById('feedbackRemaining').textContent = '今日还可提交 5 次反馈';
+        }
+        
+        document.getElementById('feedbackModal').style.display = 'flex';
+        document.getElementById('feedbackContent').value = '';
+        resetImagePreviews();
+    }
+    
+    function hideFeedbackModal() {
+        document.getElementById('feedbackModal').style.display = 'none';
+    }
+    
+    function resetImagePreviews() {
+        for (let i = 1; i <= 2; i++) {
+            const preview = document.getElementById(`preview${i}`);
+            const placeholder = document.querySelector(`#imageBox${i} .upload-placeholder`);
+            const removeBtn = document.querySelector(`#imageBox${i} .remove-image-btn`);
+            const input = document.getElementById(`image${i}`);
+            if (preview) preview.style.display = 'none';
+            if (placeholder) placeholder.style.display = 'block';
+            if (removeBtn) removeBtn.style.display = 'none';
+            if (input) input.value = '';
+        }
+    }
+    
+    function previewImage(input, num) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            if (file.size > 5 * 1024 * 1024) {
+                alert('图片大小不能超过5MB');
+                input.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById(`preview${num}`);
+                const placeholder = document.querySelector(`#imageBox${num} .upload-placeholder`);
+                const removeBtn = document.querySelector(`#imageBox${num} .remove-image-btn`);
+                if (preview) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                if (placeholder) placeholder.style.display = 'none';
+                if (removeBtn) removeBtn.style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+    
+    function removeImage(num, event) {
+        event.stopPropagation();
+        const preview = document.getElementById(`preview${num}`);
+        const placeholder = document.querySelector(`#imageBox${num} .upload-placeholder`);
+        const removeBtn = document.querySelector(`#imageBox${num} .remove-image-btn`);
+        const input = document.getElementById(`image${num}`);
+        if (preview) preview.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'block';
+        if (removeBtn) removeBtn.style.display = 'none';
+        if (input) input.value = '';
+    }
+    
+    async function submitFeedback() {
+        const content = document.getElementById('feedbackContent').value.trim();
+        if (!content) {
+            alert('请输入反馈内容');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('content', content);
+        
+        const image1 = document.getElementById('image1');
+        const image2 = document.getElementById('image2');
+        
+        if (image1.files && image1.files[0]) {
+            formData.append('image1', image1.files[0]);
+        }
+        if (image2.files && image2.files[0]) {
+            formData.append('image2', image2.files[0]);
+        }
+        
+        const token = localStorage.getItem('admin_token');
+        const btn = document.getElementById('submitFeedbackBtn');
+        const originalText = btn.textContent;
+        btn.textContent = '提交中...';
+        btn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/feedback', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                alert('反馈提交成功！感谢您的建议');
+                if (data.remaining !== undefined) {
+                    document.getElementById('feedbackRemaining').textContent = `今日还可提交 ${data.remaining} 次反馈`;
+                }
+                hideFeedbackModal();
+            } else if (response.status === 429) {
+                alert(data.error || '今日反馈次数已达上限');
+            } else {
+                alert(data.error || '提交失败，请稍后重试');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('网络错误，请稍后重试');
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
         }
     }

@@ -487,6 +487,7 @@
                 <button class="tab-btn active" onclick="switchTab('tools')">🛠️ 工具管理</button>
                 <button class="tab-btn" onclick="switchTab('categories')">📁 分类管理</button>
                 <button class="tab-btn" onclick="switchTab('data')">📊 数据管理</button>
+                <button class="tab-btn" onclick="switchTab('feedbacks')">📧 邮件反馈</button>
             </div>
             
             <!-- 工具管理 -->
@@ -576,6 +577,25 @@
                     <button class="btn btn-success" onclick="reloadCSV()">🔄 重新加载数据</button>
                 </div>
             </div>
+            
+            <!-- 邮件反馈 -->
+            <div id="feedbacksTab" class="tab-content">
+                <table class="data-table" id="feedbacksTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户</th>
+                            <th>内容</th>
+                            <th>图片</th>
+                            <th>时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feedbacksTableBody">
+                        <tr><td colspan="6" style="text-align: center; color: #999;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     
@@ -604,7 +624,15 @@
             </div>
             <div class="form-group">
                 <label>访问URL</label>
-                <input type="text" id="toolUrl" class="form-input" placeholder="外部链接，留空表示本站工具">
+                <input type="text" id="toolUrl" class="form-input" placeholder="外部链接或本站路径">
+            </div>
+            <div class="form-group">
+                <label>工具类型</label>
+                <select id="toolType" class="form-input">
+                    <option value="1">1 - 外部链接（打开中间页）</option>
+                    <option value="2">2 - 本站工具（直接打开）</option>
+                    <option value="3">3 - 本站链接（打开指定页面）</option>
+                </select>
             </div>
             <div class="form-group">
                 <label>所属分类 *</label>
@@ -761,6 +789,10 @@
             
             event.target.classList.add('active');
             document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            if (tabName === 'feedbacks') {
+                loadFeedbacks();
+            }
         }
         
         // ── 工具管理 ──
@@ -828,6 +860,7 @@
                 document.getElementById('toolDesc').value = '';
                 document.getElementById('toolDetailedDesc').value = '';
                 document.getElementById('toolUrl').value = '';
+                document.getElementById('toolType').value = '1'; // 默认类型1
                 document.getElementById('toolCategory').value = '';
                 document.getElementById('toolHot').checked = false;
                 document.getElementById('toolForeign').checked = false;
@@ -851,6 +884,7 @@
                     document.getElementById('toolDesc').value = tool.description || '';
                     document.getElementById('toolDetailedDesc').value = tool.detailed_description || '';
                     document.getElementById('toolUrl').value = tool.url || '';
+                    document.getElementById('toolType').value = tool.type || '1';
                     document.getElementById('toolCategory').value = tool.category_id || '';
                     document.getElementById('toolHot').checked = tool.is_hot || false;
                     document.getElementById('toolForeign').checked = tool.is_foreign || false;
@@ -879,6 +913,7 @@
             const desc = document.getElementById('toolDesc').value.trim();
             const detailedDesc = document.getElementById('toolDetailedDesc').value.trim();
             const url = document.getElementById('toolUrl').value.trim();
+            const toolType = parseInt(document.getElementById('toolType').value);
             const categoryId = parseInt(document.getElementById('toolCategory').value);
             const isHot = document.getElementById('toolHot').checked;
             const isForeign = document.getElementById('toolForeign').checked;
@@ -894,7 +929,7 @@
             
             const data = {
                 name, icon, description: desc, detailed_description: detailedDesc,
-                url, category_id: categoryId, is_hot: isHot, is_foreign: isForeign
+                url, type: toolType, category_id: categoryId, is_hot: isHot, is_foreign: isForeign
             };
             
             try {
@@ -1175,6 +1210,68 @@
                     showMessage(data.message || '生成成功', 'success');
                 } else {
                     showMessage(data.error || '生成失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+        
+        // ── 邮件反馈 ──
+        
+        async function loadFeedbacks() {
+            try {
+                const response = await fetch('/api/admin/feedbacks', {
+                    method: 'GET',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                if (result.data) {
+                    renderFeedbacksTable(result.data);
+                }
+            } catch (error) {
+                console.error('加载反馈列表失败:', error);
+            }
+        }
+        
+        function renderFeedbacksTable(feedbacks) {
+            const tbody = document.getElementById('feedbacksTableBody');
+            
+            if (!feedbacks || feedbacks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">暂无反馈</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = feedbacks.map(f => `
+                <tr>
+                    <td>${f.id}</td>
+                    <td>${f.username}</td>
+                    <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${f.content}</td>
+                    <td>
+                        ${f.image1 ? `<a href="${f.image1}" target="_blank" style="margin-right: 5px;">📷1</a>` : ''}
+                        ${f.image2 ? `<a href="${f.image2}" target="_blank">📷2</a>` : ''}
+                    </td>
+                    <td>${new Date(f.created_at).toLocaleString('zh-CN')}</td>
+                    <td>
+                        <button class="action-btn delete" onclick="deleteFeedback(${f.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        async function deleteFeedback(id) {
+            if (!confirm('确定要删除这条反馈吗？')) return;
+            
+            try {
+                const response = await fetch('/api/admin/feedbacks/' + id, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (response.ok) {
+                    showMessage('删除成功', 'success');
+                    loadFeedbacks();
+                } else {
+                    showMessage('删除失败', 'error');
                 }
             } catch (error) {
                 showMessage('网络错误', 'error');

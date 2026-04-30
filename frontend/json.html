@@ -96,32 +96,32 @@
         /* ── 顶部导航标签 ── */
         .nav-tabs {
             display: flex;
-            gap: 8px;
-            padding: 8px;
-            border-radius: 16px;
+            gap: 4px;
+            padding: 6px;
+            border-radius: 12px;
             background: rgba(255,255,255,0.04);
             backdrop-filter: blur(20px);
             border: 1px solid var(--border);
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             overflow-x: auto;
         }
 
         .nav-tabs::-webkit-scrollbar { height: 0; }
 
         .nav-tab {
-            padding: 10px 20px;
+            padding: 8px 14px;
             border: none;
             background: transparent;
             color: var(--text-dim);
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             cursor: pointer;
-            border-radius: 10px;
+            border-radius: 8px;
             transition: all 0.25s;
             white-space: nowrap;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
         }
 
         .nav-tab:hover {
@@ -608,6 +608,7 @@
         <button class="nav-tab" onclick="showTool('compare')">⚖️ JSON对比</button>
         <button class="nav-tab" onclick="showTool('editor')">✏️ JSON编辑器</button>
         <button class="nav-tab" onclick="showTool('excel')">📊 JSON转Excel</button>
+        <button class="nav-tab" onclick="showTool('csv')">📋 JSON转CSV</button>
         <button class="nav-tab" onclick="showTool('tutorial')">📚 JSON教程</button>
     </div>
 
@@ -641,16 +642,22 @@
             <div class="tool-section-title">
                 <span>🔍</span> JSON解析
             </div>
-            <div class="input-area">
-                <textarea id="parse-input" placeholder="粘贴或输入 JSON 数据进行解析..."></textarea>
+            <div class="json-panels">
+                <div class="json-panel">
+                    <label>输入 JSON</label>
+                    <textarea id="parse-input" placeholder="粘贴或输入 JSON 数据进行解析..."></textarea>
+                </div>
+                <div class="json-panel">
+                    <label>解析结果</label>
+                    <textarea id="parse-result" placeholder="解析结果将显示在这里..." readonly></textarea>
+                </div>
             </div>
-            <div class="json-tree" id="parse-result">解析结果将显示在这里...</div>
             <div class="tool-buttons">
                 <button class="btn btn-primary" onclick="parseJson()">解析</button>
                 <button class="btn btn-secondary" onclick="validateJson()">验证格式</button>
                 <button class="btn btn-secondary" onclick="clearParse()">清空</button>
             </div>
-        </div>
+        </div></function></seed:tool_call>
 
         <!-- JSON压缩 -->
         <div id="tool-compress" class="tool-section">
@@ -680,31 +687,43 @@
             <div class="tool-section-title">
                 <span>🌲</span> JSON视图
             </div>
-            <div class="input-area">
-                <textarea id="view-input" placeholder="粘贴或输入 JSON 数据..."></textarea>
+            <div class="json-panels">
+                <div class="json-panel">
+                    <label>输入 JSON</label>
+                    <textarea id="view-input" placeholder="粘贴或输入 JSON 数据..."></textarea>
+                </div>
+                <div class="json-panel">
+                    <label>树形视图</label>
+                    <textarea id="view-result" placeholder="树形视图将显示在这里..." readonly></textarea>
+                </div>
             </div>
-            <div class="json-tree" id="view-result">点击下方按钮查看树形视图...</div>
             <div class="tool-buttons">
                 <button class="btn btn-primary" onclick="renderJsonView()">生成树形视图</button>
                 <button class="btn btn-secondary" onclick="expandAll()">展开全部</button>
                 <button class="btn btn-secondary" onclick="collapseAll()">折叠全部</button>
             </div>
-        </div>
+        </div></function></seed:tool_call>
 
         <!-- JSON着色 -->
         <div id="tool-color" class="tool-section">
             <div class="tool-section-title">
                 <span>🎨</span> JSON着色
             </div>
-            <div class="input-area">
-                <textarea id="color-input" placeholder="粘贴或输入 JSON 数据..."></textarea>
+            <div class="json-panels">
+                <div class="json-panel">
+                    <label>输入 JSON</label>
+                    <textarea id="color-input" placeholder="粘贴或输入 JSON 数据..."></textarea>
+                </div>
+                <div class="json-panel">
+                    <label>着色结果</label>
+                    <textarea id="color-preview" placeholder="着色结果将显示在这里..." readonly></textarea>
+                </div>
             </div>
-            <div class="color-preview" id="color-preview">着色结果将显示在这里...</div>
             <div class="tool-buttons">
                 <button class="btn btn-primary" onclick="colorizeJson()">着色高亮</button>
                 <button class="btn btn-secondary" onclick="copyColorResult()">复制结果</button>
             </div>
-        </div>
+        </div></function></seed:tool_call>
 
         <!-- JSON/XML互转 -->
         <div id="tool-xml" class="tool-section">
@@ -733,8 +752,15 @@
             <div class="tool-section-title">
                 <span>🏗️</span> JSON生成实体类
             </div>
-            <div class="input-area">
-                <textarea id="entity-input" placeholder="粘贴或输入 JSON 数据..."></textarea>
+            <div class="json-panels">
+                <div class="json-panel">
+                    <label>输入 JSON</label>
+                    <textarea id="entity-input" placeholder="粘贴或输入 JSON 数据..."></textarea>
+                </div>
+                <div class="json-panel">
+                    <label>生成结果</label>
+                    <textarea id="entity-output" placeholder="生成的实体类将显示在这里..." readonly></textarea>
+                </div>
             </div>
             <div class="language-selector">
                 <button class="lang-btn active" onclick="selectLanguage('csharp')">C#</button>
@@ -742,12 +768,11 @@
                 <button class="lang-btn" onclick="selectLanguage('typescript')">TypeScript</button>
                 <button class="lang-btn" onclick="selectLanguage('go')">Go</button>
             </div>
-            <div class="entity-output" id="entity-output">生成的实体类将显示在这里...</div>
             <div class="tool-buttons">
                 <button class="btn btn-primary" onclick="generateEntity()">生成实体类</button>
                 <button class="btn btn-secondary" onclick="copyEntityResult()">复制结果</button>
             </div>
-        </div>
+        </div></function></seed:tool_call>
 
         <!-- JSON对比 -->
         <div id="tool-compare" class="tool-section">
@@ -799,8 +824,15 @@
             <div class="tool-section-title">
                 <span>📊</span> JSON转Excel
             </div>
-            <div class="input-area">
-                <textarea id="excel-input" placeholder="粘贴或输入 JSON 数组数据..."></textarea>
+            <div class="json-panels">
+                <div class="json-panel">
+                    <label>输入 JSON</label>
+                    <textarea id="excel-input" placeholder="粘贴或输入 JSON 数组数据..."></textarea>
+                </div>
+                <div class="json-panel">
+                    <label>CSV 预览</label>
+                    <textarea id="excel-output" placeholder="CSV 输出结果..." readonly></textarea>
+                </div>
             </div>
             <div class="excel-options">
                 <label><input type="checkbox" id="excel-header" checked> 包含表头</label>
@@ -809,6 +841,30 @@
             <div class="tool-buttons">
                 <button class="btn btn-primary" onclick="jsonToExcel()">导出 Excel</button>
                 <button class="btn btn-secondary" onclick="previewExcel()">预览数据</button>
+                <button class="btn btn-secondary" onclick="copyExcelResult()">复制结果</button>
+            </div>
+        </div>
+
+        <!-- JSON转CSV -->
+        <div id="tool-csv" class="tool-section">
+            <div class="tool-section-title">
+                <span>📋</span> JSON转CSV
+            </div>
+            <div class="json-panels">
+                <div class="json-panel">
+                    <label>输入 JSON</label>
+                    <textarea id="csv-input" placeholder="粘贴或输入 JSON 数组数据..."></textarea>
+                </div>
+                <div class="json-panel">
+                    <label>CSV 输出</label>
+                    <textarea id="csv-output" placeholder="转换后的 CSV 将显示在这里..." readonly></textarea>
+                </div>
+            </div>
+            <div class="tool-buttons">
+                <button class="btn btn-primary" onclick="jsonToCsv()">JSON → CSV</button>
+                <button class="btn btn-secondary" onclick="csvToJson()">CSV → JSON</button>
+                <button class="btn btn-secondary" onclick="copyCsvResult()">复制结果</button>
+                <button class="btn btn-secondary" onclick="clearCsv()">清空</button>
             </div>
         </div>
 
@@ -942,6 +998,11 @@
                 title: 'JSON转Excel工具 - 在线导出CSV | 极简工具盒',
                 description: 'JSON转Excel工具，将JSON数组数据导出为CSV/Excel文件',
                 keywords: 'JSON转Excel,JSON转CSV,导出Excel,数据导出'
+            },
+            csv: {
+                title: 'JSON转CSV工具 - 在线格式转换 | 极简工具盒',
+                description: 'JSON转CSV工具，支持JSON数组转CSV格式，也支持CSV转JSON',
+                keywords: 'JSON转CSV,CSV转JSON,JSON CSV互转,格式转换'
             },
             tutorial: {
                 title: 'JSON教程 - 学习JSON语法 | 极简工具盒',
@@ -1079,8 +1140,7 @@
             const input = document.getElementById('parse-input').value;
             try {
                 const parsed = JSON.parse(input);
-                const result = document.getElementById('parse-result');
-                result.innerHTML = formatJsonTree(parsed);
+                document.getElementById('parse-result').value = JSON.stringify(parsed, null, 4);
                 showToast('✓ 解析成功');
             } catch (e) {
                 alert('JSON 格式错误: ' + e.message);
@@ -1172,8 +1232,7 @@
             const input = document.getElementById('view-input').value;
             try {
                 const parsed = JSON.parse(input);
-                const result = document.getElementById('view-result');
-                result.innerHTML = buildTreeView(parsed);
+                document.getElementById('view-result').value = JSON.stringify(parsed, null, 4);
                 showToast('✓ 生成视图成功');
             } catch (e) {
                 alert('JSON 格式错误: ' + e.message);
@@ -1215,9 +1274,8 @@
         function colorizeJson() {
             const input = document.getElementById('color-input').value;
             try {
-                JSON.parse(input);
-                const colored = highlightJson(input);
-                document.getElementById('color-preview').innerHTML = colored;
+                const parsed = JSON.parse(input);
+                document.getElementById('color-preview').value = JSON.stringify(parsed, null, 4);
                 showToast('✓ 着色成功');
             } catch (e) {
                 alert('JSON 格式错误: ' + e.message);
@@ -1336,7 +1394,7 @@
                         result = generateGoStruct(parsed);
                         break;
                 }
-                document.getElementById('entity-output').textContent = result;
+                document.getElementById('entity-output').value = result;
                 showToast('✓ 生成成功');
             } catch (e) {
                 alert('JSON 格式错误: ' + e.message);
@@ -1599,14 +1657,121 @@
             const input = document.getElementById('excel-input').value;
             try {
                 const parsed = JSON.parse(input);
-                if (Array.isArray(parsed)) {
-                    alert(`数据预览:\n共 ${parsed.length} 条记录\n第一条记录: ${JSON.stringify(parsed[0], null, 2)}`);
+                const includeHeader = document.getElementById('excel-header').checked;
+                
+                let csv = '';
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    const headers = Object.keys(parsed[0]);
+                    if (includeHeader) {
+                        csv = headers.join(',') + '\n';
+                    }
+                    csv += parsed.map(row => headers.map(h => JSON.stringify(row[h])).join(',')).join('\n');
                 } else {
-                    alert('请输入 JSON 数组格式的数据');
+                    csv = JSON.stringify(parsed, null, 2);
                 }
+                document.getElementById('excel-output').value = csv;
+                showToast('✓ 预览成功');
             } catch (e) {
                 alert('JSON 格式错误: ' + e.message);
             }
+        }
+
+        function copyExcelResult() {
+            const output = document.getElementById('excel-output').value;
+            navigator.clipboard.writeText(output).then(() => showToast('✓ 已复制'));
+        }
+
+        // JSON转CSV
+        function jsonToCsv() {
+            const input = document.getElementById('csv-input').value;
+            try {
+                const parsed = JSON.parse(input);
+                let csv = '';
+                
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    const headers = Object.keys(parsed[0]);
+                    csv = headers.join(',') + '\n';
+                    csv += parsed.map(row => headers.map(h => {
+                        const val = row[h];
+                        if (val === null || val === undefined) return '';
+                        if (typeof val === 'string' && val.includes(',')) {
+                            return `"${val.replace(/"/g, '""')}"`;
+                        }
+                        return val;
+                    }).join(',')).join('\n');
+                } else {
+                    csv = JSON.stringify(parsed, null, 2);
+                }
+                
+                document.getElementById('csv-output').value = csv;
+                showToast('✓ 转换成功');
+            } catch (e) {
+                alert('JSON 格式错误: ' + e.message);
+            }
+        }
+
+        // CSV转JSON
+        function csvToJson() {
+            const input = document.getElementById('csv-input').value;
+            try {
+                const lines = input.trim().split('\n').filter(line => line.trim());
+                if (lines.length === 0) {
+                    alert('请输入 CSV 数据');
+                    return;
+                }
+                
+                const headers = lines[0].split(',').map(h => h.trim());
+                const result = lines.slice(1).map(line => {
+                    const values = parseCsvLine(line);
+                    const obj = {};
+                    headers.forEach((h, i) => {
+                        obj[h] = values[i] || '';
+                    });
+                    return obj;
+                });
+                
+                document.getElementById('csv-output').value = JSON.stringify(result, null, 4);
+                showToast('✓ 转换成功');
+            } catch (e) {
+                alert('CSV 格式错误: ' + e.message);
+            }
+        }
+
+        function parseCsvLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current);
+            
+            return result;
+        }
+
+        function copyCsvResult() {
+            const output = document.getElementById('csv-output').value;
+            navigator.clipboard.writeText(output).then(() => showToast('✓ 已复制'));
+        }
+
+        function clearCsv() {
+            document.getElementById('csv-input').value = '';
+            document.getElementById('csv-output').value = '';
         }
 
         // 初始化示例数据

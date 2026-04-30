@@ -46,7 +46,7 @@ func GenerateStaticData(c *gin.Context) {
 		return
 	}
 
-	// 4. 序列化并写入文件
+	// 4. 序列化并写入文件（确保UTF-8编码）
 	dataFile := filepath.Join(frontendDir, "data.json")
 	file, err := os.Create(dataFile)
 	if err != nil {
@@ -55,6 +55,9 @@ func GenerateStaticData(c *gin.Context) {
 	}
 	defer file.Close()
 
+	// 写入BOM以确保Windows正确识别UTF-8编码
+	file.WriteString("\xef\xbb\xbf")
+	
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(data); err != nil {

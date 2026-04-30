@@ -108,6 +108,10 @@
 
         <!-- 用户 -->
         <div class="user-wrap">
+            <!-- 邮件图标（反馈） -->
+            <div id="feedbackIcon" class="feedback-icon" onclick="openFeedbackModal()" title="提交反馈">
+                📧
+            </div>
             <div class="user-area" id="userArea" onclick="handleUserAreaClick()">
                 <div class="avatar" id="headerAvatar"></div>
                 <span id="headerName" style="display:none"></span>
@@ -211,6 +215,51 @@
             <div class="modal-footer">
                 <button class="btn btn-cancel" onclick="hideRegisterModal()">取消</button>
                 <button class="btn btn-primary" onclick="adminRegister()">注册</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 反馈模态框 -->
+    <div class="modal-overlay" id="feedbackModal" style="display:none" onclick="hideFeedbackModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title">📧 提交反馈</span>
+                <button class="modal-close" onclick="hideFeedbackModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>反馈内容 *</label>
+                    <textarea id="feedbackContent" class="form-input" rows="4" placeholder="请详细描述您的问题或建议..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>截图或图片（可选，最多2张，每张不超过5MB）</label>
+                    <div class="image-upload-container">
+                        <div class="image-upload-box" id="imageBox1" onclick="document.getElementById('image1').click()">
+                            <div class="upload-placeholder">
+                                <span style="font-size:24px">📷</span>
+                                <div>点击上传图片1</div>
+                            </div>
+                            <img id="preview1" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:8px;">
+                            <button class="remove-image-btn" onclick="removeImage(1,event)" style="display:none">×</button>
+                        </div>
+                        <input type="file" id="image1" accept="image/*" style="display:none" onchange="previewImage(this,1)">
+                        
+                        <div class="image-upload-box" id="imageBox2" onclick="document.getElementById('image2').click()">
+                            <div class="upload-placeholder">
+                                <span style="font-size:24px">📷</span>
+                                <div>点击上传图片2</div>
+                            </div>
+                            <img id="preview2" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:8px;">
+                            <button class="remove-image-btn" onclick="removeImage(2,event)" style="display:none">×</button>
+                        </div>
+                        <input type="file" id="image2" accept="image/*" style="display:none" onchange="previewImage(this,2)">
+                    </div>
+                </div>
+                <div id="feedbackRemaining" style="color:var(--text-dim);font-size:12px"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="hideFeedbackModal()">取消</button>
+                <button class="btn btn-primary" id="submitFeedbackBtn" onclick="submitFeedback()">提交反馈</button>
             </div>
         </div>
     </div>

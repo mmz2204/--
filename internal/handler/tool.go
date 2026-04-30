@@ -11,13 +11,16 @@ import (
 
 // CreateToolRequest 创建工具请求结构体
 type CreateToolRequest struct {
-	Name        string `json:"name" binding:"required"`        // 工具名称
-	Description string `json:"description"`                    // 工具描述
-	Icon        string `json:"icon"`                           // 工具图标
-	URL         string `json:"url"`                            // 工具地址（空为本工具）
-	CategoryID  uint   `json:"category_id" binding:"required"` // 分类ID
-	IsHot       bool   `json:"is_hot"`                         // 是否火热
-	SortOrder   int    `json:"sort_order"`                     // 排序
+	Name                string `json:"name" binding:"required"`        // 工具名称
+	Description         string `json:"description"`                    // 工具描述
+	DetailedDescription string `json:"detailed_description"`           // 详细描述
+	Icon                string `json:"icon"`                           // 工具图标
+	URL                 string `json:"url"`                            // 工具地址
+	Type                int    `json:"type" default:"1"`               // 工具类型：1外部链接，2本站工具，3本站链接
+	CategoryID          uint   `json:"category_id" binding:"required"` // 分类ID
+	IsHot               bool   `json:"is_hot"`                         // 是否火热
+	IsForeign           bool   `json:"is_foreign"`                     // 是否国外工具
+	SortOrder           int    `json:"sort_order"`                     // 排序
 }
 
 // CreateTool 创建工具
@@ -28,15 +31,23 @@ func CreateTool(c *gin.Context) {
 		return
 	}
 
+	// 默认类型为1
+	if req.Type == 0 {
+		req.Type = 1
+	}
+
 	tool := &model.Tool{
-		Name:        req.Name,
-		Description: req.Description,
-		Icon:        req.Icon,
-		URL:         req.URL,
-		CategoryID:  req.CategoryID,
-		IsHot:       req.IsHot,
-		SortOrder:   req.SortOrder,
-		Status:      1,
+		Name:                req.Name,
+		Description:         req.Description,
+		DetailedDescription: req.DetailedDescription,
+		Icon:                req.Icon,
+		URL:                 req.URL,
+		Type:                req.Type,
+		CategoryID:          req.CategoryID,
+		IsHot:               req.IsHot,
+		IsForeign:           req.IsForeign,
+		SortOrder:           req.SortOrder,
+		Status:              1,
 	}
 
 	if err := model.CreateTool(config.DB, tool); err != nil {
@@ -49,14 +60,17 @@ func CreateTool(c *gin.Context) {
 
 // UpdateToolRequest 更新工具请求结构体
 type UpdateToolRequest struct {
-	Name        string `json:"name"`        // 工具名称
-	Description string `json:"description"` // 工具描述
-	Icon        string `json:"icon"`        // 工具图标
-	URL         string `json:"url"`         // 工具地址
-	CategoryID  uint   `json:"category_id"` // 分类ID
-	IsHot       bool   `json:"is_hot"`      // 是否火热
-	SortOrder   int    `json:"sort_order"`  // 排序
-	Status      int    `json:"status"`      // 状态
+	Name                string `json:"name"`                 // 工具名称
+	Description         string `json:"description"`          // 工具描述
+	DetailedDescription string `json:"detailed_description"` // 详细描述
+	Icon                string `json:"icon"`                 // 工具图标
+	URL                 string `json:"url"`                  // 工具地址
+	Type                int    `json:"type"`                 // 工具类型
+	CategoryID          uint   `json:"category_id"`          // 分类ID
+	IsHot               bool   `json:"is_hot"`               // 是否火热
+	IsForeign           bool   `json:"is_foreign"`           // 是否国外工具
+	SortOrder           int    `json:"sort_order"`           // 排序
+	Status              int    `json:"status"`               // 状态
 }
 
 // UpdateTool 更新工具
@@ -87,16 +101,23 @@ func UpdateTool(c *gin.Context) {
 	if req.Description != "" {
 		tool.Description = req.Description
 	}
+	if req.DetailedDescription != "" {
+		tool.DetailedDescription = req.DetailedDescription
+	}
 	if req.Icon != "" {
 		tool.Icon = req.Icon
 	}
 	if req.URL != "" {
 		tool.URL = req.URL
 	}
+	if req.Type != 0 {
+		tool.Type = req.Type
+	}
 	if req.CategoryID != 0 {
 		tool.CategoryID = req.CategoryID
 	}
 	tool.IsHot = req.IsHot
+	tool.IsForeign = req.IsForeign
 	tool.SortOrder = req.SortOrder
 	tool.Status = req.Status
 

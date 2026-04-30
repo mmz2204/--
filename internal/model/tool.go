@@ -14,6 +14,7 @@ type Tool struct {
 	DetailedDescription string    `gorm:"size:1000" json:"detailed_description"` // 详细描述（约100字）
 	Icon                string    `gorm:"size:255" json:"icon"`                  // 工具图标URL
 	URL                 string    `gorm:"size:500" json:"url"`                   // 工具访问地址（空表示本站工具）
+	Type                int       `gorm:"default:1" json:"type"`                 // 工具类型：1外部链接，2本站工具，3本站链接
 	CategoryID          uint      `gorm:"not null" json:"category_id"`           // 所属分类ID
 	IsHot               bool      `gorm:"default:false" json:"is_hot"`           // 是否火热工具
 	IsForeign           bool      `gorm:"default:false" json:"is_foreign"`       // 是否国外工具

@@ -74,10 +74,14 @@ func InitDB() {
 		&model.Category{},
 		&model.Tool{},
 		&model.Favorite{},
+		&model.Feedback{},
 	).Error
 	if err != nil {
 		logger.Fatal("数据库迁移失败: %v", err)
 	}
+
+	// 设置admins表自增起始值为10008475
+	DB.Exec("ALTER TABLE admins AUTO_INCREMENT = 10008475")
 
 	logger.Info("数据库连接成功，表结构已自动迁移")
 
@@ -277,22 +281,28 @@ func loadToolsFromCSV(filePath string) {
 		if i == 0 {
 			continue // 跳过标题
 		}
-		if len(record) < 10 {
+		if len(record) < 11 {
 			continue
 		}
 
 		// 解析字段
-		// name,icon,description,detailed_description,url,category_id,is_hot,is_foreign,sort_order,status
+		// name,icon,description,detailed_description,url,type,category_id,is_hot,is_foreign,sort_order,status
 		name := record[0]
 		icon := record[1]
 		description := record[2]
 		detailedDescription := record[3]
 		url := record[4]
-		categoryID, _ := strconv.ParseUint(record[5], 10, 32)
-		isHot := record[6] == "1"
-		isForeign := record[7] == "1"
-		sortOrder, _ := strconv.Atoi(record[8])
-		status, _ := strconv.Atoi(record[9])
+		toolType, _ := strconv.Atoi(record[5])
+		categoryID, _ := strconv.ParseUint(record[6], 10, 32)
+		isHot := record[7] == "1"
+		isForeign := record[8] == "1"
+		sortOrder, _ := strconv.Atoi(record[9])
+		status, _ := strconv.Atoi(record[10])
+
+		// 工具类型默认为1（外部链接）
+		if toolType == 0 {
+			toolType = 1
+		}
 
 		tool := model.Tool{
 			Name:                name,
@@ -300,6 +310,7 @@ func loadToolsFromCSV(filePath string) {
 			Description:         description,
 			DetailedDescription: detailedDescription,
 			URL:                 url,
+			Type:                toolType,
 			CategoryID:          uint(categoryID),
 			IsHot:               isHot,
 			IsForeign:           isForeign,

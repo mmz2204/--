@@ -545,6 +545,43 @@
             }
         }
 
+        // 记录浏览历史
+        async function recordToolVisit(tool) {
+            const isLoggedIn = !!localStorage.getItem('admin_token');
+            const recentIds = JSON.parse(localStorage.getItem('recent') || '[]');
+            const newRecent = [tool.id, ...recentIds.filter(x => x !== tool.id)].slice(0, 10);
+            localStorage.setItem('recent', JSON.stringify(newRecent));
+
+            if (isLoggedIn) {
+                try {
+                    await fetch('/api/history', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+                        },
+                        body: JSON.stringify({
+                            tool_id: tool.id,
+                            tool_name: tool.name,
+                            tool_icon: tool.icon
+                        })
+                    });
+                } catch (error) {
+                    console.error('保存浏览历史失败:', error);
+                }
+            } else {
+                const history = JSON.parse(localStorage.getItem('local_history') || '[]');
+                const newHistory = [{
+                    id: Date.now(),
+                    tool_id: tool.id,
+                    tool_name: tool.name,
+                    tool_icon: tool.icon,
+                    created_at: new Date().toISOString()
+                }, ...history.filter(h => h.tool_id !== tool.id)].slice(0, 10);
+                localStorage.setItem('local_history', JSON.stringify(newHistory));
+            }
+        }
+
         // 渲染页面
         async function renderPage() {
             const toolsData = await loadToolsData();
@@ -564,6 +601,9 @@
                 window.location.href = '/';
                 return;
             }
+            
+            // 记录浏览历史
+            recordToolVisit(currentTool);
             
             // 设置页面标题
             document.title = currentTool.name + ' - AI工具盒子';

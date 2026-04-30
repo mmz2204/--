@@ -1,10 +1,14 @@
 package handler
 
 import (
+	"fmt"
+	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"tools.jinbox.cn/config"
@@ -179,17 +183,159 @@ func UpdatePassword(c *gin.Context) {
 	})
 }
 
+// 生成随机字符串
+func generateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+// 确保上传目录存在
+func ensureUploadDir() string {
+	uploadDir := "./uploads/feedback"
+	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		os.MkdirAll(uploadDir, 0755)
+	}
+	return uploadDir
+}
+
+// 保存图片文件，返回相对路径
+func saveImageFile(file io.Reader, filename string) (string, error) {
+	uploadDir := ensureUploadDir()
+	ext := filepath.Ext(filename)
+	newFilename := fmt.Sprintf("feedback_%d_%s%s", time.Now().UnixNano(), generateRandomString(8), ext)
+	filepath := filepath.Join(uploadDir, newFilename)
+
+	dst, err := os.Create(filepath)
+	if err != nil {
+		return "", err
+	}
+	defer dst.Close()
+
+	_, err = io.Copy(dst, file)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("/uploads/feedback/%s", newFilename), nil
+}
+
 // SubmitFeedback 提交反馈
 func SubmitFeedback(c *gin.Context) {
-	var req FeedbackRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	// 解析多部分表单
+	err := c.Request.ParseMultipartForm(5 << 20) // 5MB
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "解析表单失败"})
+		return
+	}
+
+	// 从JWT获取用户信息
+	userID, exists := c.Get("admin_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "请先登录"})
+		return
+	}
+
+	uid := userID.(uint)
+
+	// 检查今日反馈次数
+	todayCount, err := model.GetUserTodayFeedbackCount(config.DB, uid)
+	if err != nil {
+		log.Printf("查询今日反馈次数失败: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "服务器错误"})
+		return
+	}
+	if todayCount >= 5 {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "今日反馈次数已达上限（5次），请明天再试"})
+		return
+	}
+
+	// 获取反馈内容
+	content := c.Request.FormValue("content")
+	if content == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请输入反馈内容"})
 		return
 	}
 
-	log.Printf("收到用户反馈: %s", req.Content)
+	// 获取用户信息
+	var user model.Admin
+	err = config.DB.First(&user, uid).Error
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "反馈已提交，感谢您的意见！"})
+	// 创建反馈
+	feedback := &model.Feedback{
+		UserID:   uid,
+		Username: user.Username,
+		Content:  content,
+	}
+
+	// 处理图片1
+	if file, header, err := c.Request.FormFile("image1"); err == nil {
+		defer file.Close()
+		// 检查大小不超过5MB
+		if header.Size > 5*1024*1024 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "图片1大小不能超过5MB"})
+			return
+		}
+		imgPath, err := saveImageFile(file, header.Filename)
+		if err == nil {
+			feedback.Image1 = imgPath
+		}
+	}
+
+	// 处理图片2
+	if file, header, err := c.Request.FormFile("image2"); err == nil {
+		defer file.Close()
+		// 检查大小不超过5MB
+		if header.Size > 5*1024*1024 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "图片2大小不能超过5MB"})
+			return
+		}
+		imgPath, err := saveImageFile(file, header.Filename)
+		if err == nil {
+			feedback.Image2 = imgPath
+		}
+	}
+
+	// 保存到数据库
+	err = model.CreateFeedback(config.DB, feedback)
+	if err != nil {
+		log.Printf("保存反馈失败: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "反馈提交成功",
+		"remaining": 5 - todayCount - 1,
+	})
+}
+
+// GetFeedbackRemaining 获取用户今日剩余反馈次数
+func GetFeedbackRemaining(c *gin.Context) {
+	userID, exists := c.Get("admin_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "请先登录"})
+		return
+	}
+
+	uid := userID.(uint)
+	todayCount, err := model.GetUserTodayFeedbackCount(config.DB, uid)
+	if err != nil {
+		log.Printf("查询今日反馈次数失败: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "服务器错误"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"remaining": 5 - todayCount,
+	})
 }
 
 // CreateAdmin 创建管理员（用于初始化）
@@ -347,4 +493,34 @@ func ReloadCSV(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "CSV数据重新加载成功"})
+}
+
+// GetFeedbacks 获取所有反馈列表
+func GetFeedbacks(c *gin.Context) {
+	feedbacks, err := model.GetFeedbacks(config.DB)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取反馈列表失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "获取成功",
+		"data":    feedbacks,
+	})
+}
+
+// DeleteFeedback 删除反馈
+func DeleteFeedback(c *gin.Context) {
+	id := c.Param("id")
+
+	if err := config.DB.Delete(&model.Feedback{}, id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除反馈失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "删除成功",
+	})
 }

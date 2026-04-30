@@ -45,6 +45,7 @@ func main() {
 	r.Static("/css", "./frontend/css")
 	r.Static("/js", "./frontend/js")
 	r.Static("/assets", "./frontend/assets")
+	r.Static("/uploads", "./uploads")
 	r.StaticFile("/data.json", "./frontend/data.json")
 
 	// 公共路由
@@ -55,9 +56,6 @@ func main() {
 
 		// 注册接口
 		public.POST("/register", handler.Register)
-
-		// 反馈接口
-		public.POST("/feedback", handler.SubmitFeedback)
 
 		// 获取工具列表（无需登录）
 		public.GET("/tools", handler.ListTools)
@@ -70,10 +68,19 @@ func main() {
 		public.GET("/categories/:id", handler.GetCategory)
 		public.GET("/categories/tools", handler.GetCategoriesWithTools)
 
-		// 浏览历史（登录用户保存到数据库，未登录用户保存到缓存）
+		// 浏览历史
 		public.POST("/history", handler.SaveHistory)
 		public.GET("/history", handler.GetHistory)
 		public.DELETE("/history", handler.ClearHistory)
+	}
+
+	// 私有路由（需要JWT认证）
+	authRoutes := r.Group("/api")
+	authRoutes.Use(middleware.JWTAuthenticate())
+	{
+		// 反馈接口（需要登录）
+		authRoutes.POST("/feedback", handler.SubmitFeedback)
+		authRoutes.GET("/feedback/remaining", handler.GetFeedbackRemaining)
 	}
 
 	// 工具详情页面路由
@@ -118,6 +125,9 @@ func main() {
 	r.GET("/json/tutorial", func(c *gin.Context) {
 		c.File("./frontend/json.html")
 	})
+	r.GET("/json/csv", func(c *gin.Context) {
+		c.File("./frontend/json.html")
+	})
 
 	// 管理员后台页面路由
 	r.GET("/admin", func(c *gin.Context) {
@@ -128,19 +138,19 @@ func main() {
 	private := r.Group("/api/admin")
 	private.Use(middleware.JWTAuthenticate())
 	{
-		// 获取当前用户信息（登录用户均可访问）
-		private.GET("/profile", handler.GetProfile)
-		private.PUT("/password", handler.UpdatePassword)
-
-		// 收藏夹管理
-		private.GET("/favorites", handler.GetFavorites)
-		private.POST("/favorites", handler.AddFavorite)
-		private.DELETE("/favorites/:id", handler.RemoveFavorite)
-
 		// 管理后台需要管理员权限
 		adminRoutes := private.Group("")
 		adminRoutes.Use(middleware.RequireAdmin())
 		{
+			// 个人信息
+			adminRoutes.GET("/profile", handler.GetProfile)
+			adminRoutes.PUT("/password", handler.UpdatePassword)
+
+			// 收藏夹管理
+			adminRoutes.GET("/favorites", handler.GetFavorites)
+			adminRoutes.POST("/favorites", handler.AddFavorite)
+			adminRoutes.DELETE("/favorites/:id", handler.RemoveFavorite)
+
 			// 工具管理
 			adminRoutes.POST("/tools", handler.CreateTool)
 			adminRoutes.PUT("/tools/:id", handler.UpdateTool)
@@ -168,6 +178,9 @@ func main() {
 			})
 			// 上传CSV文件
 			adminRoutes.POST("/upload-csv", handler.UploadCSV)
+			// 反馈管理
+			adminRoutes.GET("/feedbacks", handler.GetFeedbacks)
+			adminRoutes.DELETE("/feedbacks/:id", handler.DeleteFeedback)
 		}
 	}
 
