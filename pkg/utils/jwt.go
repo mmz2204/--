@@ -9,7 +9,7 @@ import (
 )
 
 // GenerateToken 生成JWT token
-func GenerateToken(id uint, username string) (string, error) {
+func GenerateToken(id uint, username string, isAdmin bool) (string, error) {
 	// 设置token过期时间（7天）
 	expTime := time.Now().Add(7 * 24 * time.Hour)
 
@@ -17,6 +17,7 @@ func GenerateToken(id uint, username string) (string, error) {
 	claims := &middleware.Claims{
 		ID:       id,
 		Username: username,
+		IsAdmin:  isAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

@@ -38,35 +38,87 @@ func Login(c *gin.Context) {
 	}
 
 	// 生成JWT token
-	token, err := utils.GenerateToken(admin.ID, admin.Username)
+	token, err := utils.GenerateToken(admin.ID, admin.Username, admin.IsAdmin)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成token失败"})
 		return
 	}
 
+	// 获取用户收藏夹
+	var favorites []model.Favorite
+	config.DB.Where("user_id = ?", admin.ID).Order("created_at DESC").Find(&favorites)
+
 	// 返回成功信息
 	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
 		"message": "登录成功",
 		"data": gin.H{
-			"id":       admin.ID,
-			"username": admin.Username,
-			"email":    admin.Email,
-			"token":    token,
+			"id":        admin.ID,
+			"username":  admin.Username,
+			"email":     admin.Email,
+			"is_admin":  admin.IsAdmin,
+			"token":     token,
+			"favorites": favorites,
 		},
 	})
 }
 
 // GetProfile 获取当前管理员信息
 func GetProfile(c *gin.Context) {
-	// 从上下文获取管理员信息
 	id := c.GetUint("admin_id")
-	username := c.GetString("admin_username")
+
+	var admin model.Admin
+	if err := config.DB.First(&admin, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
+
+	var favorites []model.Favorite
+	config.DB.Where("user_id = ?", id).Order("created_at DESC").Find(&favorites)
 
 	c.JSON(http.StatusOK, gin.H{
+		"code": 0,
 		"data": gin.H{
-			"id":       id,
-			"username": username,
+			"id":        admin.ID,
+			"username":  admin.Username,
+			"email":     admin.Email,
+			"is_admin":  admin.IsAdmin,
+			"favorites": favorites,
 		},
+	})
+}
+
+// Register 注册新用户
+func Register(c *gin.Context) {
+	var req CreateAdminRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		return
+	}
+
+	// 检查用户名是否已存在
+	existingAdmin, err := model.GetAdminByUsername(config.DB, req.Username)
+	if err == nil && existingAdmin.ID > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "用户名已存在"})
+		return
+	}
+
+	// 创建新用户（普通用户，is_admin=false）
+	admin := &model.Admin{
+		Username: req.Username,
+		Email:    req.Email,
+		IsAdmin:  false,
+	}
+	admin.SetPassword(req.Password)
+
+	if err := model.CreateAdmin(config.DB, admin); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建用户失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "注册成功",
 	})
 }
 
@@ -82,6 +134,49 @@ type FeedbackRequest struct {
 	Content string `json:"content" binding:"required"` // 反馈内容
 }
 
+// UpdatePasswordRequest 修改密码请求结构体
+type UpdatePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"` // 当前密码
+	NewPassword string `json:"new_password" binding:"required"` // 新密码
+}
+
+// UpdatePassword 修改密码
+func UpdatePassword(c *gin.Context) {
+	id := c.GetUint("admin_id")
+
+	var req UpdatePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		return
+	}
+
+	var admin model.Admin
+	if err := config.DB.First(&admin, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
+
+	if !admin.CheckPassword(req.OldPassword) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "当前密码错误"})
+		return
+	}
+
+	if err := admin.SetPassword(req.NewPassword); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "密码加密失败"})
+		return
+	}
+
+	if err := config.DB.Save(&admin).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存密码失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "密码修改成功",
+	})
+}
+
 // SubmitFeedback 提交反馈
 func SubmitFeedback(c *gin.Context) {
 	var req FeedbackRequest
@@ -90,8 +185,6 @@ func SubmitFeedback(c *gin.Context) {
 		return
 	}
 
-	// 这里可以将反馈保存到数据库或发送邮件
-	// 目前只是模拟成功
 	log.Printf("收到用户反馈: %s", req.Content)
 
 	c.JSON(http.StatusOK, gin.H{"message": "反馈已提交，感谢您的意见！"})
@@ -124,4 +217,73 @@ func CreateAdmin(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "创建成功", "data": admin})
+}
+
+// ExportData 导出分类和工具数据（JSON格式）
+func ExportData(c *gin.Context) {
+	// 获取所有启用的分类
+	var categories []model.Category
+	if err := config.DB.Where("status = ?", 1).Order("sort_order DESC").Find(&categories).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取分类数据失败"})
+		return
+	}
+
+	// 获取所有启用的工具
+	var tools []model.Tool
+	if err := config.DB.Where("status = ?", 1).Order("sort_order DESC").Find(&tools).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取工具数据失败"})
+		return
+	}
+
+	// 构建导出数据结构
+	type ExportTool struct {
+		ID          uint   `json:"id"`
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Icon        string `json:"icon"`
+		URL         string `json:"url"`
+		CategoryID  uint   `json:"category_id"`
+		IsHot       bool   `json:"is_hot"`
+		SortOrder   int    `json:"sort_order"`
+	}
+
+	type ExportCategory struct {
+		ID        uint         `json:"id"`
+		Name      string       `json:"name"`
+		Icon      string       `json:"icon"`
+		SortOrder int          `json:"sort_order"`
+		Tools     []ExportTool `json:"tools"`
+	}
+
+	// 组织数据
+	var exportData []ExportCategory
+	for _, cat := range categories {
+		ec := ExportCategory{
+			ID:        cat.ID,
+			Name:      cat.Name,
+			Icon:      cat.Icon,
+			SortOrder: cat.SortOrder,
+		}
+		// 找出属于这个分类的工具
+		for _, tool := range tools {
+			if tool.CategoryID == cat.ID {
+				ec.Tools = append(ec.Tools, ExportTool{
+					ID:          tool.ID,
+					Name:        tool.Name,
+					Description: tool.Description,
+					Icon:        tool.Icon,
+					URL:         tool.URL,
+					CategoryID:  tool.CategoryID,
+					IsHot:       tool.IsHot,
+					SortOrder:   tool.SortOrder,
+				})
+			}
+		}
+		exportData = append(exportData, ec)
+	}
+
+	// 设置响应头
+	c.Header("Content-Type", "application/json")
+	c.Header("Content-Disposition", "attachment; filename=tools_data.json")
+	c.JSON(http.StatusOK, exportData)
 }

@@ -9,13 +9,14 @@ import (
 
 // Admin 管理员模型
 type Admin struct {
-	ID        uint      `gorm:"primary_key" json:"id"`                 // 管理员ID
-	Username  string    `gorm:"size:50;unique;not null" json:"username"` // 用户名
-	Password  string    `gorm:"size:255;not null" json:"-"`            // 密码（不返回）
-	Email     string    `gorm:"size:100" json:"email"`                // 邮箱
-	Status    int       `gorm:"default:1" json:"status"`              // 状态：0禁用，1启用
-	CreatedAt time.Time `json:"created_at"`                           // 创建时间
-	UpdatedAt time.Time `json:"updated_at"`                           // 更新时间
+	ID        uint      `gorm:"primary_key" json:"id"`                           // 管理员ID
+	Username  string    `gorm:"size:50;unique;not null" json:"username"`          // 用户名
+	Password  string    `gorm:"size:255;not null" json:"-"`                     // 密码（不返回）
+	Email     string    `gorm:"size:100" json:"email"`                           // 邮箱
+	IsAdmin   bool      `gorm:"default:false" json:"is_admin"`                   // 是否为管理员
+	Status    int       `gorm:"default:1" json:"status"`                         // 状态：0禁用，1启用
+	CreatedAt time.Time `json:"created_at"`                                       // 创建时间
+	UpdatedAt time.Time `json:"updated_at"`                                       // 更新时间
 }
 
 // TableName 指定表名

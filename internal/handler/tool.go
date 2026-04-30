@@ -14,7 +14,7 @@ type CreateToolRequest struct {
 	Name        string `json:"name" binding:"required"`        // 工具名称
 	Description string `json:"description"`                    // 工具描述
 	Icon        string `json:"icon"`                           // 工具图标
-	URL         string `json:"url" binding:"required"`         // 工具地址
+	URL         string `json:"url"`                            // 工具地址（空为本工具）
 	CategoryID  uint   `json:"category_id" binding:"required"` // 分类ID
 	IsHot       bool   `json:"is_hot"`                         // 是否火热
 	SortOrder   int    `json:"sort_order"`                     // 排序

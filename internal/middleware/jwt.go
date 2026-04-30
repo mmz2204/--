@@ -13,6 +13,7 @@ import (
 type Claims struct {
 	ID       uint   `json:"id"`
 	Username string `json:"username"`
+	IsAdmin  bool   `json:"is_admin"`
 	jwt.RegisteredClaims
 }
 
@@ -53,11 +54,25 @@ func JWTAuthenticate() gin.HandlerFunc {
 			// 将用户信息存入上下文
 			c.Set("admin_id", claims.ID)
 			c.Set("admin_username", claims.Username)
+			c.Set("is_admin", claims.IsAdmin)
 			c.Next()
 		} else {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "token验证失败"})
 			c.Abort()
 			return
 		}
+	}
+}
+
+// RequireAdmin 管理员权限验证中间件
+func RequireAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		isAdmin, exists := c.Get("is_admin")
+		if !exists || !isAdmin.(bool) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "需要管理员权限"})
+			c.Abort()
+			return
+		}
+		c.Next()
 	}
 }

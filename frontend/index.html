@@ -2,494 +2,58 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>极简工具盒</title>
-    <style>
-        :root {
-            --primary: #6366f1;
-            --primary2: #8b5cf6;
-            --accent: #06b6d4;
-            --star: #f59e0b;
-            --text-main: #f1f5f9;
-            --text-dim: #94a3b8;
-            --border: rgba(255,255,255,0.10);
-            --border-bright: rgba(255,255,255,0.18);
-            --glass: rgba(255,255,255,0.06);
-            --glass-dark: rgba(10,15,30,0.55);
-            --glass-card: rgba(255,255,255,0.07);
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    
+    <!-- SEO 基础标签 -->
+    <title>极简工具盒 - 免费在线工具箱 | tools.jianbox.cn</title>
+    <meta name="description" content="极简工具盒提供丰富的免费在线工具，包括JSON格式化、Base64编解码、时间戳转换、密码生成器、颜色转换等开发、设计、办公工具。无需下载，打开即用。">
+    <meta name="keywords" content="在线工具,工具箱,JSON格式化,Base64,时间戳转换,密码生成器,正则测试,颜色转换,图片压缩,PDF转换,免费工具">
+    <meta name="author" content="极简工具盒">
+    <meta name="robots" content="index, follow">
+    <meta name="generator" content="极简工具盒">
+    
+    <!-- 移动端优化 -->
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="format-detection" content="telephone=no">
+    
+    <!-- Open Graph / 社交媒体分享 -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="极简工具盒 - 免费在线工具箱">
+    <meta property="og:description" content="提供JSON格式化、Base64编解码、时间戳转换、密码生成器等免费在线工具。无需下载，打开即用。">
+    <meta property="og:url" content="https://tools.jianbox.cn">
+    <meta property="og:site_name" content="极简工具盒">
+    <meta property="og:locale" content="zh_CN">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="极简工具盒 - 免费在线工具箱">
+    <meta name="twitter:description" content="提供JSON格式化、Base64编解码、时间戳转换、密码生成器等免费在线工具。无需下载，打开即用。">
+    
+    <!-- 链接关系 -->
+    <link rel="canonical" href="https://tools.jianbox.cn">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><path fill='%236366f1' d='M18 2L32 10v16L18 34 4 26V10L18 2z'/><path fill='%23fff' d='M21 8l-7 11h4l-3 9 8-12h-4l3-8z'/></svg>">
+    
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- 结构化数据 -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "极简工具盒",
+        "alternateName": "ToolBox",
+        "url": "https://tools.jianbox.cn",
+        "description": "提供JSON格式化、Base64编解码、时间戳转换等免费在线工具",
+        "keywords": "在线工具,工具箱,JSON格式化,Base64,时间戳转换",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://tools.jianbox.cn/?search={search_term_string}",
+            "query-input": "required name=search_term_string"
         }
-
-        * { margin:0; padding:0; box-sizing:border-box; }
-
-        /* ── 动态渐变背景 ── */
-        body {
-            min-height: 100vh; height: 100vh;
-            font-family: "PingFang SC","Microsoft YaHei",sans-serif;
-            color: var(--text-main);
-            overflow: hidden;
-            display: flex; flex-direction: column;
-            padding: 18px;
-            position: relative;
-        }
-
-        /* 背景层：多彩光晕 */
-        body::before {
-            content:'';
-            position:fixed; inset:0; z-index:-2;
-            background:
-                radial-gradient(ellipse 70% 55% at 15% 20%, rgba(99,102,241,0.35) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 85% 75%, rgba(6,182,212,0.28) 0%, transparent 55%),
-                radial-gradient(ellipse 50% 40% at 50% 50%, rgba(139,92,246,0.20) 0%, transparent 60%),
-                linear-gradient(135deg, #04061a 0%, #080d24 50%, #060b1e 100%);
-        }
-        /* 背景噪点增加质感 */
-        body::after {
-            content:'';
-            position:fixed; inset:0; z-index:-1;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-            opacity: 0.5;
-            pointer-events:none;
-        }
-
-        /* ══════════════════════════════
-           毛玻璃基础样式
-        ══════════════════════════════ */
-        .glass {
-            background: var(--glass);
-            backdrop-filter: blur(24px) saturate(160%);
-            -webkit-backdrop-filter: blur(24px) saturate(160%);
-            border: 1px solid var(--border-bright);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
-        }
-
-        /* ── Header ── */
-        header {
-            position: relative;
-            z-index: 100;
-            border-radius: 18px;
-            padding: 11px 22px;
-            display: flex; align-items: center; gap: 28px;
-            margin-bottom: 14px;
-            background: rgba(255,255,255,0.06);
-            backdrop-filter: blur(30px) saturate(180%);
-            -webkit-backdrop-filter: blur(30px) saturate(180%);
-            border: 1px solid var(--border-bright);
-            box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12);
-        }
-
-        /* ── LOGO ── */
-        .brand {
-            display: flex; align-items: center; gap: 10px;
-            text-decoration: none; flex-shrink: 0;
-        }
-        .logo-wrap {
-            width: 36px; height: 36px; flex-shrink: 0;
-            position: relative;
-        }
-        .logo-wrap svg { width: 36px; height: 36px; display:block; }
-        .brand-text {
-            display: flex; flex-direction: column; line-height: 1.2;
-        }
-        .brand-name {
-            font-size: 16px; font-weight: 700; letter-spacing: 0.5px;
-            background: linear-gradient(90deg, #a5b4fc, #67e8f9, #a5b4fc);
-            background-size: 200% 100%;
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: shimmer 4s linear infinite;
-        }
-        .brand-sub {
-            font-size: 10px; color: var(--text-dim); letter-spacing: 1px;
-        }
-        @keyframes shimmer {
-            0%{background-position:0% 50%} 100%{background-position:200% 50%}
-        }
-
-        /* ── 搜索框 ── */
-        .search-container { flex: 1; display: flex; justify-content: center; }
-        .search-wrap {
-            position: relative; max-width: 440px; width: 100%;
-        }
-        .search-icon {
-            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-            color: var(--text-dim); font-size: 14px; pointer-events: none;
-        }
-        .search-input {
-            width: 100%;
-            background: rgba(0,0,0,0.25);
-            border: 1px solid var(--border-bright);
-            backdrop-filter: blur(10px);
-            padding: 9px 16px 9px 38px;
-            border-radius: 12px;
-            color: #fff; outline: none; font-size: 13px;
-            transition: 0.25s;
-        }
-        .search-input::placeholder { color: var(--text-dim); }
-        .search-input:focus {
-            border-color: rgba(99,102,241,0.6);
-            background: rgba(99,102,241,0.08);
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
-        }
-
-        /* ── 用户头像 ── */
-        .user-wrap { position: relative; flex-shrink: 0; }
-        .user-area {
-            display: flex; align-items: center; gap: 9px;
-            font-size: 13px; cursor: pointer;
-            padding: 5px 12px 5px 5px;
-            border-radius: 10px;
-            border: 1px solid transparent;
-            transition: 0.2s;
-        }
-        .user-area:hover { border-color: var(--border-bright); background: var(--glass); }
-        .user-area.open { border-color: var(--border-bright); background: var(--glass); }
-        .avatar {
-            width: 30px; height: 30px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            display: flex; align-items: center; justify-content: center;
-            font-size: 12px; font-weight: 700; color: #fff;
-            box-shadow: 0 0 0 2px rgba(99,102,241,0.4);
-            overflow: hidden; flex-shrink: 0;
-        }
-        .avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
-
-        /* ── 用户下拉面板 ── */
-        .user-dropdown {
-            display: none;
-            position: absolute;
-            top: 100%;
-            right: 0;
-            margin-top: 8px;
-            width: 280px;
-            background: rgba(12,18,38,0.92);
-            backdrop-filter: blur(30px) saturate(180%);
-            -webkit-backdrop-filter: blur(30px) saturate(180%);
-            border: 1px solid var(--border-bright);
-            border-radius: 16px;
-            box-shadow: 0 16px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.1);
-            z-index: 9999;
-            overflow: hidden;
-        }
-        .user-dropdown.show { display: block; animation: dropDown 0.2s cubic-bezier(0.4,0,0.2,1); }
-        @keyframes dropDown {
-            from { opacity:0; transform: translateY(-8px) scale(0.97); }
-            to   { opacity:1; transform: translateY(0) scale(1); }
-        }
-
-        /* 面板顶部头像区 */
-        .dp-head {
-            padding: 20px 20px 16px;
-            display: flex; flex-direction: column; align-items: center; gap: 10px;
-            border-bottom: 1px solid var(--border);
-            background: linear-gradient(180deg, rgba(99,102,241,0.08) 0%, transparent 100%);
-        }
-        .dp-avatar-wrap { position: relative; cursor: pointer; }
-        .dp-avatar {
-            width: 64px; height: 64px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            display: flex; align-items: center; justify-content: center;
-            font-size: 26px; font-weight: 700; color: #fff;
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.35), 0 4px 16px rgba(99,102,241,0.3);
-            overflow: hidden;
-        }
-        .dp-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
-        .dp-avatar-edit {
-            position: absolute; bottom:0; right:0;
-            width:22px; height:22px; border-radius:50%;
-            background: var(--primary); border: 2px solid #0c1226;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 10px; color:#fff;
-        }
-        #avatarInput { display:none; }
-        .dp-name { font-size: 14px; font-weight: 600; color: var(--text-main); }
-        .dp-uid { font-size: 11px; color: var(--text-dim); }
-
-        /* 面板内容区 */
-        .dp-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
-        .dp-field { display: flex; flex-direction: column; gap: 4px; }
-        .dp-label {
-            font-size: 10px; color: var(--text-dim);
-            text-transform: uppercase; letter-spacing: 0.8px;
-        }
-        .dp-row { display: flex; align-items: center; gap: 8px; }
-        .dp-val {
-            flex: 1; font-size: 13px; color: var(--text-main);
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
-            border-radius: 8px; padding: 7px 11px;
-        }
-        .dp-btn {
-            padding: 7px 14px; border-radius: 8px; border: none;
-            background: linear-gradient(135deg, var(--primary), var(--primary2));
-            color: #fff; font-size: 12px; cursor: pointer;
-            transition: 0.2s; flex-shrink: 0;
-        }
-        .dp-btn:hover { opacity: 0.85; transform: translateY(-1px); }
-        .dp-input {
-            flex: 1; font-size: 13px; color: var(--text-main);
-            background: rgba(0,0,0,0.3); border: 1px solid rgba(99,102,241,0.5);
-            border-radius: 8px; padding: 7px 11px; outline: none;
-            box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
-        }
-        .dp-edit-btn {
-            width: 28px; height: 28px; border-radius: 7px;
-            background: rgba(255,255,255,0.06); border: 1px solid var(--border);
-            color: var(--text-dim); font-size: 12px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: 0.2s; flex-shrink: 0;
-        }
-        .dp-edit-btn:hover { background: rgba(99,102,241,0.2); color: #a5b4fc; border-color: rgba(99,102,241,0.4); }
-        .dp-save-btn {
-            width: 28px; height: 28px; border-radius: 7px;
-            background: rgba(99,102,241,0.25); border: 1px solid rgba(99,102,241,0.45);
-            color: #a5b4fc; font-size: 12px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: 0.2s; flex-shrink: 0;
-        }
-        .dp-save-btn:hover { background: rgba(99,102,241,0.4); }
-        .dp-uid-row {
-            font-size: 12px; color: var(--text-dim);
-            background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-            border-radius: 8px; padding: 7px 11px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .dp-uid-copy { font-size: 11px; cursor: pointer; color: var(--primary); opacity:0.8; }
-        .dp-uid-copy:hover { opacity:1; }
-        .dp-divider { height:1px; background:var(--border); margin: 2px 0; }
-        .dp-foot {
-            padding: 12px 16px;
-            border-top: 1px solid var(--border);
-        }
-        .dp-logout {
-            width:100%; padding: 8px; border-radius:9px;
-            background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);
-            color: #f87171; font-size: 12px; cursor: pointer; transition: 0.2s;
-        }
-        .dp-logout:hover { background: rgba(239,68,68,0.18); }
-
-        /* ── 最近使用栏 ── */
-        .recent-bar {
-            border-radius: 14px;
-            padding: 9px 16px;
-            display: flex; align-items: center; gap: 7px;
-            margin-bottom: 14px;
-            overflow-x: auto;
-            background: rgba(255,255,255,0.04);
-            backdrop-filter: blur(20px) saturate(150%);
-            -webkit-backdrop-filter: blur(20px) saturate(150%);
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-        }
-        .recent-bar::-webkit-scrollbar { height: 0; }
-        .recent-label {
-            font-size: 11px; color: var(--text-dim);
-            white-space: nowrap; flex-shrink: 0;
-            padding-right: 4px;
-        }
-        .recent-divider { width:1px; height:14px; background:var(--border-bright); flex-shrink:0; }
-        .recent-item {
-            display: flex; align-items: center; gap: 6px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px; padding: 4px 12px;
-            font-size: 12px; color: #cbd5e1;
-            cursor: pointer; white-space: nowrap; flex-shrink: 0;
-            transition: 0.2s; backdrop-filter: blur(8px);
-        }
-        .recent-item:hover {
-            background: rgba(99,102,241,0.2);
-            border-color: rgba(99,102,241,0.45);
-            color: #fff; transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(99,102,241,0.2);
-        }
-        .recent-item .ri-icon { font-size: 13px; }
-        .recent-empty {
-            font-size: 12px; color: rgba(148,163,184,0.5);
-            font-style: italic;
-        }
-
-        /* ── 布局 ── */
-        .layout { display: flex; gap: 16px; flex: 1; overflow: hidden; }
-
-        /* ── 侧边栏 ── */
-        aside {
-            width: 176px; flex-shrink: 0;
-            border-radius: 18px;
-            padding: 14px 8px;
-            display: flex; flex-direction: column; gap: 2px;
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(28px) saturate(160%);
-            -webkit-backdrop-filter: blur(28px) saturate(160%);
-            border: 1px solid var(--border-bright);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
-        }
-        .nav-item {
-            padding: 10px 14px; border-radius: 10px; cursor: pointer;
-            color: var(--text-dim); font-size: 13px; transition: 0.2s;
-            display: flex; align-items: center; justify-content: flex-start;
-            gap: 6px;
-        }
-        .nav-item > span:first-child { flex: 1; }
-        .nav-item:hover {
-            background: rgba(255,255,255,0.07);
-            color: var(--text-main);
-        }
-        .nav-item.active {
-            background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.18));
-            color: #a5b4fc; font-weight: 600;
-            border: 1px solid rgba(99,102,241,0.3);
-            box-shadow: 0 2px 12px rgba(99,102,241,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
-        }
-        .nav-badge {
-            background: var(--star);
-            color: #000; font-size: 10px; font-weight: 700;
-            padding: 1px 6px; border-radius: 10px; min-width: 18px; text-align: center;
-        }
-        .nav-divider { height:1px; background: var(--border); margin: 6px 10px; }
-
-        /* ── 工具主区域 ── */
-        .tools-box {
-            flex: 1;
-            border-radius: 20px;
-            padding: 22px;
-            overflow-y: auto;
-            background: rgba(255,255,255,0.04);
-            backdrop-filter: blur(24px) saturate(150%);
-            -webkit-backdrop-filter: blur(24px) saturate(150%);
-            border: 1px solid var(--border);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
-        }
-        .tools-box::-webkit-scrollbar { width: 4px; }
-        .tools-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
-
-        .section-title {
-            font-size: 12px; color: var(--text-dim);
-            margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
-            text-transform: uppercase; letter-spacing: 0.8px;
-        }
-        .section-title::after { content:''; flex:1; height:1px; background: var(--border); }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(170px, 200px));
-            gap: 14px;
-        }
-
-        /* ── 工具卡片（核心毛玻璃） ── */
-        .card {
-            background: rgba(255,255,255,0.07);
-            backdrop-filter: blur(16px) saturate(160%);
-            -webkit-backdrop-filter: blur(16px) saturate(160%);
-            border: 1px solid rgba(255,255,255,0.13);
-            border-radius: 16px; padding: 16px;
-            display: flex; flex-direction: column;
-            position: relative;
-            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1);
-        }
-        .card::before {
-            content:''; position:absolute; inset:0; border-radius:16px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 60%);
-            pointer-events:none;
-        }
-        .card:hover {
-            transform: translateY(-5px) scale(1.01);
-            border-color: rgba(99,102,241,0.45);
-            background: rgba(99,102,241,0.12);
-            box-shadow: 0 12px 36px rgba(99,102,241,0.25), 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
-        }
-        .card.favorited {
-            border-color: rgba(245,158,11,0.35);
-            box-shadow: 0 4px 20px rgba(245,158,11,0.15), 0 4px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1);
-        }
-
-        /* 收藏按钮 */
-        .star-btn {
-            position:absolute; top:11px; right:11px;
-            background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1);
-            width: 26px; height: 26px; border-radius: 7px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 13px; cursor: pointer;
-            color: rgba(255,255,255,0.3);
-            transition: 0.2s; backdrop-filter: blur(8px);
-        }
-        .star-btn:hover { color: var(--star); border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.1); transform: scale(1.15); }
-        .star-btn.active { color: var(--star); border-color: rgba(245,158,11,0.5); background: rgba(245,158,11,0.12); }
-
-        .card-header {
-            display: flex; align-items: center; gap: 11px; margin-bottom: 10px;
-            padding-right: 28px; padding-left: 0;
-        }
-        .icon-small {
-            width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
-            background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.15));
-            border: 1px solid rgba(99,102,241,0.3);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 17px;
-            box-shadow: 0 2px 8px rgba(99,102,241,0.2);
-        }
-        .card h3 { font-size: 13px; font-weight: 600; color: #e2e8f0; line-height: 1.3; }
-        .card p {
-            font-size: 11.5px; color: var(--text-dim);
-            line-height: 1.65; margin-bottom: 14px; flex-grow: 1;
-        }
-        .btn-run {
-            align-self: flex-start;
-            background: linear-gradient(135deg, var(--primary), var(--primary2));
-            color: #fff; border: none;
-            padding: 6px 16px; border-radius: 7px;
-            font-size: 12px; font-weight: 500;
-            cursor: pointer; transition: 0.2s;
-            box-shadow: 0 3px 12px rgba(99,102,241,0.35);
-        }
-        .btn-run:hover {
-            filter: brightness(1.15);
-            box-shadow: 0 4px 18px rgba(99,102,241,0.5);
-            transform: translateY(-1px);
-        }
-
-        /* ── 空状态 ── */
-        .empty-state {
-            display: flex; flex-direction: column; align-items: center;
-            justify-content: center; height: 180px;
-            color: var(--text-dim); gap: 10px;
-        }
-        .empty-state .empty-icon { font-size: 36px; opacity: 0.35; }
-        .empty-state p { font-size: 13px; }
-
-        .view { display:none; }
-        .view.active { display:block; }
-
-        /* ── 火热 HOT 角标（左上斜角 ribbon） ── */
-        .hot-badge {
-            position: absolute; top: 0; left: 0;
-            width: 52px; height: 52px;
-            overflow: hidden; border-radius: 16px 0 0 0;
-            pointer-events: none;
-        }
-        .hot-badge::before {
-            content: 'HOT';
-            position: absolute;
-            top: 10px; left: -18px;
-            width: 68px;
-            background: linear-gradient(135deg, #f97316, #ef4444);
-            color: #fff; font-size: 9px; font-weight: 800;
-            text-align: center; letter-spacing: 1px;
-            padding: 3px 0;
-            transform: rotate(-45deg);
-            box-shadow: 0 2px 6px rgba(239,68,68,0.5);
-        }
-        .card-uses {
-            font-size: 10px; color: rgba(245,158,11,0.75);
-            margin-bottom: 10px; display: flex; align-items: center; gap: 3px;
-        }
-        .fire-icon {
-            font-size: 16px; display: inline-block;
-            animation: fireFlicker 1.4s ease-in-out infinite alternate;
-        }
-        @keyframes fireFlicker {
-            from { transform: scale(1) rotate(-3deg); filter: brightness(1); }
-            to   { transform: scale(1.15) rotate(3deg); filter: brightness(1.3); }
-        }
-    </style>
+    }
+    </script>
 </head>
 <body>
 
@@ -530,7 +94,7 @@
             </div>
             <div class="brand-text">
                 <span class="brand-name">极简工具盒</span>
-                <span class="brand-sub">TOOLBOX</span>
+                <span class="brand-sub" onclick="copyDomain()" style="cursor:pointer" title="点击复制域名">tools.jianbox.cn</span>
             </div>
         </a>
 
@@ -544,10 +108,10 @@
 
         <!-- 用户 -->
         <div class="user-wrap">
-            <div class="user-area" id="userArea" onclick="toggleDropdown()">
-                <div class="avatar" id="headerAvatar">A</div>
-                <span id="headerName">Alex R.</span>
-                <span style="color:var(--text-dim);font-size:10px" id="dropArrow">▾</span>
+            <div class="user-area" id="userArea" onclick="handleUserAreaClick()">
+                <div class="avatar" id="headerAvatar"></div>
+                <span id="headerName" style="display:none"></span>
+                <span style="color:var(--text-dim);font-size:10px" id="dropArrow" style="display:none">▾</span>
             </div>
             <div class="user-dropdown" id="userDropdown">
                 <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)">
@@ -570,7 +134,7 @@
                     <div class="dp-field">
                         <div class="dp-label">密码</div>
                         <div class="dp-row">
-                            <span style="border-bottom:1px dashed var(--border);padding-bottom:2px;color:var(--text-dim);flex:1;">******</span>
+                            <div class="dp-val" style="flex:1;color:var(--text-dim)">******</div>
                             <button class="dp-btn" onclick="editPwd()">修改</button>
                         </div>
                     </div>
@@ -593,6 +157,166 @@
         </div>
     </header>
 
+    <!-- 用户登录模态框 -->
+    <div class="modal-overlay" id="loginModal" style="display:none" onclick="hideLoginModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title">🔐 用户登录</span>
+                <button class="modal-close" onclick="hideLoginModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="loginUsername" placeholder="请输入用户名" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="loginPassword" placeholder="请输入密码" class="form-input">
+                </div>
+                <div class="form-footer">
+                    <a href="#" onclick="event.preventDefault(); hideLoginModal(); showRegisterModal();">没有账号？点击注册</a>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="hideLoginModal()">取消</button>
+                <button class="btn btn-primary" onclick="adminLogin()">登录</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户注册模态框 -->
+    <div class="modal-overlay" id="registerModal" style="display:none" onclick="hideRegisterModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title">📝 用户注册</span>
+                <button class="modal-close" onclick="hideRegisterModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="regUsername" placeholder="请输入用户名" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="regPassword" placeholder="请输入密码" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <input type="password" id="regPassword2" placeholder="请再次输入密码" class="form-input">
+                </div>
+                <div class="form-footer">
+                    <a href="#" onclick="event.preventDefault(); hideRegisterModal(); showLoginModal();">已有账号？点击登录</a>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="hideRegisterModal()">取消</button>
+                <button class="btn btn-primary" onclick="adminRegister()">注册</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ 管理后台面板 ══ -->
+    <div class="admin-panel-overlay" id="adminPanel" style="display:none" onclick="closeAdminPanel()">
+        <div class="admin-panel" onclick="event.stopPropagation()">
+            <div class="admin-header">
+                <span class="admin-title">⚙️ 管理后台</span>
+                <button class="admin-close" onclick="closeAdminPanel()">×</button>
+            </div>
+            <div class="admin-body">
+                <!-- 标签页切换 -->
+                <div class="admin-tabs">
+                    <button class="tab-btn active" onclick="showTab('tools')">工具管理</button>
+                    <button class="tab-btn" onclick="showTab('categories')">分类管理</button>
+                    <button class="tab-btn" onclick="exportData()" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">📥 导出数据</button>
+                    <button class="tab-btn" onclick="generateStaticData()" style="background: linear-gradient(135deg, #10b981, #34d399);">🔄 生成静态数据</button>
+                </div>
+                
+                <!-- 工具管理标签 -->
+                <div class="tab-content" id="tools-tab">
+                    <div class="admin-actions">
+                        <button class="btn btn-primary" onclick="showAddToolModal()">+ 添加工具</button>
+                    </div>
+                    <div class="admin-table" id="toolsTable">
+                        <!-- 工具列表会动态生成 -->
+                    </div>
+                </div>
+                
+                <!-- 分类管理标签 -->
+                <div class="tab-content" id="categories-tab" style="display:none">
+                    <div class="admin-actions">
+                        <button class="btn btn-primary" onclick="showAddCategoryModal()">+ 添加分类</button>
+                    </div>
+                    <div class="admin-table" id="categoriesTable">
+                        <!-- 分类列表会动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加工具模态框 -->
+    <div class="modal-overlay" id="addToolModal" style="display:none" onclick="hideAddToolModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title">✨ 添加工具</span>
+                <button class="modal-close" onclick="hideAddToolModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>工具名称</label>
+                    <input type="text" id="toolName" placeholder="请输入工具名称" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>工具图标（emoji）</label>
+                    <input type="text" id="toolIcon" placeholder="如: 📷" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>工具描述</label>
+                    <textarea id="toolDesc" placeholder="请输入工具描述" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>所属分类</label>
+                    <select id="toolCategory" class="form-input"></select>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="toolHot"> 设为火热工具</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="hideAddToolModal()">取消</button>
+                <button class="btn btn-primary" onclick="addTool()">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加分类模态框 -->
+    <div class="modal-overlay" id="addCategoryModal" style="display:none" onclick="hideAddCategoryModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title">📁 添加分类</span>
+                <button class="modal-close" onclick="hideAddCategoryModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>分类名称</label>
+                    <input type="text" id="categoryName" placeholder="请输入分类名称" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>分类图标（emoji）</label>
+                    <input type="text" id="categoryIcon" placeholder="如: 💻" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>排序序号</label>
+                    <input type="number" id="categoryOrder" placeholder="数字越小越靠前" class="form-input" value="1">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="hideAddCategoryModal()">取消</button>
+                <button class="btn btn-primary" onclick="addCategory()">添加</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ══ 最近使用栏 ══ -->
     <div class="recent-bar" id="recentBar">
         <span class="recent-label">🕐 最近使用</span>
@@ -605,15 +329,15 @@
 
         <!-- 侧边栏 -->
         <aside>
-            <div class="nav-item active" onclick="switchNav(this,'all')"><span>🏠 首&ensp;页</span></div>
+            <div class="nav-item active" onclick="switchNav(this,'all')"><span>🏠 首页</span></div>
             <div class="nav-item" onclick="switchNav(this,'fav')">
                 <span>⭐ 我的收藏</span>
                 <span class="nav-badge" id="favBadge" style="display:none">0</span>
             </div>
             <div class="nav-divider"></div>
-            <div class="nav-item" onclick="switchNav(this,'code')"><span>💻 编码工具</span></div>
-            <div class="nav-item" onclick="switchNav(this,'life')"><span>🛠️ 生活工具</span></div>
-            <div class="nav-item" onclick="switchNav(this,'design')"><span>🎨 设计素材</span></div>
+            <div id="dynamic-nav"></div>
+            <div class="nav-divider"></div>
+            <div class="nav-item" id="adminNav" style="display:none;" onclick="openAdminPanel()"><span>⚙️ 管理后台</span></div>
         </aside>
 
         <!-- 工具区 -->
@@ -628,12 +352,7 @@
                     </div>
                     <div class="grid" id="grid-hot"></div>
                 </div>
-                <div class="section-title" id="code-title" style="margin-top:22px;">💻 编码工具</div>
-                <div class="grid" id="grid-code-home"></div>
-                <div class="section-title" id="life-title" style="margin-top:22px;">🛠️ 生活工具</div>
-                <div class="grid" id="grid-life-home"></div>
-                <div class="section-title" id="design-title" style="margin-top:22px;">🎨 设计素材</div>
-                <div class="grid" id="grid-design-home"></div>
+                <div id="dynamic-categories"></div>
             </div>
 
             <div class="view" id="view-fav">
@@ -646,400 +365,18 @@
                 <div class="grid" id="grid-fav"></div>
             </div>
 
-            <div class="view" id="view-code">
-                <div class="section-title">编码工具</div>
-                <div class="grid" id="grid-code"></div>
-            </div>
+            <div id="dynamic-views"></div>
 
-            <div class="view" id="view-life">
-                <div class="section-title">生活工具</div>
-                <div class="grid" id="grid-life"></div>
-            </div>
-
-            <div class="view" id="view-design">
-                <div class="section-title">设计素材</div>
-                <div class="grid" id="grid-design"></div>
+            <!-- 工具详情页面视图 -->
+            <div class="view" id="view-tool">
+                <div class="tool-page" id="toolPage">
+                    <!-- 工具详情会动态填充 -->
+                </div>
             </div>
 
         </main>
     </div>
 
-<script>
-    const tools = [
-        { id:1,  icon:'{}', name:'JSON Formatter', desc:'代码美化与校验，让你的代码井然有序。', cat:'code',   hot:true,  uses:12800 },
-        { id:2,  icon:'M↓', name:'Markdown',        desc:'实时预览编辑，支持多种文档格式导出。', cat:'code',   hot:true,  uses:9400  },
-        { id:3,  icon:'⏰', name:'时间戳转换',       desc:'快速转换 Unix 时间戳与标准时间。',     cat:'code',   hot:true,  uses:8100  },
-        { id:4,  icon:'🔐', name:'Base64 编解码',    desc:'字符串与 Base64 互转，一键复制。',     cat:'code',   hot:false, uses:3200  },
-        { id:5,  icon:'#',  name:'Hash 生成',        desc:'快速生成 MD5、SHA-1、SHA-256 摘要。',  cat:'code',   hot:false, uses:2700  },
-        { id:6,  icon:'🎨', name:'色彩取色器',       desc:'获取任意颜色的 HEX / RGB / HSL 值。',  cat:'design', hot:true,  uses:7600  },
-        { id:7,  icon:'📐', name:'字体预览',         desc:'浏览常用 Web 字体，实时对比效果。',    cat:'design', hot:false, uses:1900  },
-        { id:8,  icon:'✂️', name:'SVG 压缩',         desc:'精简 SVG 文件体积，保留视觉细节。',    cat:'design', hot:false, uses:1400  },
-        { id:9,  icon:'🧮', name:'汇率计算器',       desc:'实时汇率换算，支持 30+ 货币。',        cat:'life',   hot:true,  uses:6300  },
-        { id:10, icon:'📅', name:'日期计算',         desc:'计算两个日期之间的天数间隔。',          cat:'life',   hot:false, uses:2100  },
-        { id:11, icon:'📏', name:'单位换算',         desc:'长度、重量、温度等常用单位互转。',      cat:'life',   hot:false, uses:1700  },
-    ];
-
-    let favorites = new Set(JSON.parse(localStorage.getItem('fav')||'[]'));
-    function saveFav(){ localStorage.setItem('fav', JSON.stringify([...favorites])); }
-
-    // ── 最近使用（最多8条，存 id 列表）──
-    let recentIds = JSON.parse(localStorage.getItem('recent')||'[]');
-    function recordRecent(id){
-        recentIds = [id, ...recentIds.filter(x=>x!==id)].slice(0,8);
-        localStorage.setItem('recent', JSON.stringify(recentIds));
-        renderRecentBar();
-    }
-    function renderRecentBar(){
-        const bar = document.getElementById('recentBar');
-        // 清除旧 item，保留 label 和 divider
-        bar.querySelectorAll('.recent-item').forEach(el=>el.remove());
-        const empty = document.getElementById('recentEmpty');
-        if(!recentIds.length){ empty.style.display=''; return; }
-        empty.style.display='none';
-        const divider = bar.querySelector('.recent-divider');
-        recentIds.forEach(id=>{
-            const t = tools.find(x=>x.id===id); if(!t) return;
-            const btn = document.createElement('span');
-            btn.className='recent-item';
-            btn.innerHTML=`<span class="ri-icon">${t.icon}</span>${t.name}`;
-            btn.onclick=()=>{ recordRecent(t.id); };
-            bar.insertBefore(btn, divider.nextSibling);
-        });
-    }
-
-    function toggleFav(id, btn, card){
-        if(favorites.has(id)){
-            favorites.delete(id); btn.classList.remove('active');
-            btn.textContent='☆'; card.classList.remove('favorited');
-        } else {
-            favorites.add(id); btn.classList.add('active');
-            btn.textContent='★'; card.classList.add('favorited');
-        }
-        saveFav(); updateBadge();
-        if(document.getElementById('view-fav').classList.contains('active')) renderFav();
-    }
-
-    function updateBadge(){
-        const b=document.getElementById('favBadge');
-        b.textContent=favorites.size;
-        b.style.display=favorites.size?'':'none';
-    }
-
-    function fmtUses(n){
-        return n>=10000?(n/10000).toFixed(1)+'w':n>=1000?(n/1000).toFixed(1)+'k':n+'';
-    }
-
-    function makeCard(t, showHot){
-        const isFav=favorites.has(t.id);
-        const card=document.createElement('div');
-        card.className='card'+(isFav?' favorited':'');
-        const hotBadge = (showHot && t.hot) ? `<span class="hot-badge"></span>` : '';
-        const usesLine = (showHot && t.hot) ? `<div class="card-uses">🔥 ${fmtUses(t.uses)} 次使用</div>` : '';
-        card.innerHTML=`
-            ${hotBadge}
-            <button class="star-btn ${isFav?'active':''}" title="${isFav?'取消收藏':'收藏'}">
-                ${isFav?'★':'☆'}
-            </button>
-            <div class="card-header">
-                <div class="icon-small">${t.icon}</div>
-                <h3>${t.name}</h3>
-            </div>
-            <p>${t.desc}</p>
-            ${usesLine}
-            <button class="btn-run">运行</button>
-        `;
-        card.querySelector('.star-btn').addEventListener('click', e=>{
-            e.stopPropagation(); toggleFav(t.id, e.currentTarget, card);
-        });
-        card.querySelector('.btn-run').addEventListener('click', e=>{
-            e.stopPropagation(); recordRecent(t.id);
-        });
-        return card;
-    }
-
-    function renderGrid(id, list, showHot){
-        const el=document.getElementById(id); el.innerHTML='';
-        if(!list.length){
-            el.innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div><p>没有找到相关工具</p></div>';
-            return;
-        }
-        list.forEach(t=>el.appendChild(makeCard(t, showHot||false)));
-    }
-
-    function renderFav(){
-        const favTools=tools.filter(t=>favorites.has(t.id));
-        document.getElementById('emptyFav').style.display=favTools.length?'none':'flex';
-        renderGrid('grid-fav', favTools);
-    }
-
-    function renderAll(){
-        const hotList=[...tools].filter(t=>t.hot).sort((a,b)=>b.uses-a.uses);
-        renderGrid('grid-hot', hotList, true);
-        renderGrid('grid-code-home', tools.filter(t=>t.cat==='code'));
-        renderGrid('grid-life-home', tools.filter(t=>t.cat==='life'));
-        renderGrid('grid-design-home', tools.filter(t=>t.cat==='design'));
-        renderGrid('grid-code', tools.filter(t=>t.cat==='code'));
-        renderGrid('grid-life', tools.filter(t=>t.cat==='life'));
-        renderGrid('grid-design', tools.filter(t=>t.cat==='design'));
-        renderFav(); updateBadge(); renderRecentBar();
-    }
-
-    function switchNav(el, view){
-        document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-        el.classList.add('active');
-        document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-        document.getElementById('view-'+view).classList.add('active');
-        if(view==='fav') renderFav();
-    }
-
-    function searchTools(q){
-        if(!q.trim()){ renderAll(); document.querySelector('.hot-section').style.display=''; return; }
-        const kw=q.toLowerCase();
-        const res=tools.filter(t=>t.name.toLowerCase().includes(kw)||t.desc.includes(kw));
-        document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-        document.querySelector('.nav-item').classList.add('active');
-        document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-        document.getElementById('view-all').classList.add('active');
-        document.getElementById('hot-section').style.display='none';
-        const codeHome = document.getElementById('grid-code-home');
-        const lifeHome = document.getElementById('grid-life-home');
-        const designHome = document.getElementById('grid-design-home');
-        if(codeHome) codeHome.style.display='none';
-        if(lifeHome) codeHome.style.display='none';
-        if(designHome) codeHome.style.display='none';
-        renderGrid('grid-hot', res, true);
-    }
-
-    renderAll();
-
-    /* ══ 用户信息面板 ══ */
-    const USER_KEY = 'userProfile';
-    let userProfile = JSON.parse(localStorage.getItem(USER_KEY) || 'null') || {
-        id: 'UID-' + Math.random().toString(36).slice(2,10).toUpperCase(),
-        name: 'Alex R.',
-        pwd: '',
-        avatar: ''  // base64 或空
-    };
-
-    function saveProfile(){ localStorage.setItem(USER_KEY, JSON.stringify(userProfile)); }
-
-    function applyProfile(){
-        const ha = document.getElementById('headerAvatar');
-        const dp = document.getElementById('dpAvatar');
-        if(userProfile.avatar){
-            if(ha) ha.innerHTML = `<img src="${userProfile.avatar}">`;
-            if(dp) dp.innerHTML = `<img src="${userProfile.avatar}">`;
-        } else {
-            const initials = userProfile.name.slice(0,1).toUpperCase();
-            if(ha) ha.innerHTML = initials;
-            if(dp) dp.innerHTML = initials;
-        }
-        const headerName = document.getElementById('headerName');
-        const dpNameDisplay = document.getElementById('dpNameDisplay');
-        const dpUidTop = document.getElementById('dpUidTop');
-        const dpUidVal = document.getElementById('dpUidVal');
-        const nameVal = document.getElementById('nameVal');
-        const pwdVal = document.getElementById('pwdVal');
-        if(headerName) headerName.textContent = userProfile.name;
-        if(dpNameDisplay) dpNameDisplay.textContent = userProfile.name;
-        if(dpUidTop) dpUidTop.textContent = '#' + userProfile.id;
-        if(dpUidVal) dpUidVal.textContent = userProfile.id;
-        if(nameVal) nameVal.textContent = userProfile.name;
-        if(pwdVal) pwdVal.textContent = userProfile.pwd ? '••••••••' : '未设置';
-    }
-
-    function toggleDropdown(){
-        const dd = document.getElementById('userDropdown');
-        const ua = document.getElementById('userArea');
-        const arrow = document.getElementById('dropArrow');
-        if(!dd || !ua) return;
-        const isOpen = dd.classList.contains('show');
-        if(!isOpen){
-            applyDropdownProfile();
-        }
-        dd.classList.toggle('show', !isOpen);
-        ua.classList.toggle('open', !isOpen);
-        if(arrow) arrow.textContent = isOpen ? '▾' : '▴';
-    }
-
-    function applyDropdownProfile(){
-        const da = document.getElementById('dropdownAvatar');
-        const dn = document.getElementById('dropdownName');
-        const di = document.getElementById('dropdownId');
-        const dnv = document.getElementById('dropdownNameVal');
-        if(userProfile.avatar){
-            da.innerHTML = `<img src="${userProfile.avatar}">`;
-        } else {
-            const initials = userProfile.name.slice(0,1).toUpperCase();
-            da.innerHTML = initials;
-        }
-        if(dn) dn.textContent = userProfile.name;
-        if(di) di.textContent = '#' + userProfile.id;
-        if(dnv) dnv.textContent = userProfile.name;
-    }
-
-    function editAvatar(){
-        document.getElementById('avatarInput').click();
-    }
-
-    function handleAvatarUpload(input){
-        const file = input.files[0];
-        if(!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = function(e){
-            userProfile.avatar = e.target.result;
-            saveProfile();
-            applyProfile();
-            applyDropdownProfile();
-        };
-        reader.readAsDataURL(file);
-        input.value = '';
-    }
-
-    function editName(){
-        const name = prompt('请输入新名字:', userProfile.name);
-        if(name !== null && name.trim()){
-            userProfile.name = name.trim();
-            saveProfile();
-            applyProfile();
-            applyDropdownProfile();
-        }
-        closeDropdown();
-    }
-
-    function editPwd(){
-        const oldPwd = prompt('请输入当前密码：');
-        if(oldPwd === null) return;
-        
-        if(userProfile.pwd && oldPwd !== userProfile.pwd){
-            alert('旧密码错误！');
-            return;
-        }
-        
-        const newPwd1 = prompt('请输入新密码：');
-        if(newPwd1 === null) return;
-        
-        const newPwd2 = prompt('请再次输入新密码：');
-        if(newPwd2 === null) return;
-        
-        if(newPwd1 !== newPwd2){
-            alert('两次输入的密码不一致！');
-            return;
-        }
-        
-        userProfile.pwd = newPwd1;
-        saveProfile();
-        applyDropdownProfile();
-        alert('密码修改成功！');
-        closeDropdown();
-    }
-
-    function logout(){
-        if(!confirm('确定要退出登录吗？这将清除所有本地数据（包括收藏、最近使用等）。')){
-            return;
-        }
-        localStorage.clear();
-        location.reload();
-    }
-
-    function sendFeedback(){
-        const feedback = prompt('请输入您的意见或建议：');
-        if(!feedback || !feedback.trim()){
-            alert('请输入内容');
-            return;
-        }
-        
-        const data = {
-            content: feedback.trim()
-        };
-
-        fetch('/api/feedback', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            if(response.ok){
-                alert('反馈提交成功！感谢您的意见。');
-                closeDropdown();
-            } else {
-                alert('提交失败，请稍后重试');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('提交失败，请稍后重试');
-        });
-    }
-
-    function closeDropdown(){
-        const dd = document.getElementById('userDropdown');
-        const ua = document.getElementById('userArea');
-        const arrow = document.getElementById('dropArrow');
-        if(dd) dd.classList.remove('show');
-        if(ua) ua.classList.remove('open');
-        if(arrow) arrow.textContent = '▾';
-    }
-
-    // 点击面板外关闭
-    document.addEventListener('click', e=>{
-        const wrap = document.querySelector('.user-wrap');
-        if(!wrap.contains(e.target)) closeDropdown();
-    });
-
-    function startEdit(field){
-        if(field==='name'){
-            document.getElementById('nameVal').style.display='none';
-            document.getElementById('nameEditBtn').style.display='none';
-            const inp = document.getElementById('nameInput');
-            inp.style.display=''; inp.value=userProfile.name; inp.focus();
-            document.getElementById('nameSaveBtn').style.display='';
-        } else {
-            document.getElementById('pwdVal').style.display='none';
-            document.getElementById('pwdEditBtn').style.display='none';
-            const inp = document.getElementById('pwdInput');
-            inp.style.display=''; inp.value=''; inp.focus();
-            document.getElementById('pwdSaveBtn').style.display='';
-        }
-    }
-
-    function saveEdit(field){
-        if(field==='name'){
-            const v = document.getElementById('nameInput').value.trim();
-            if(v){ userProfile.name=v; saveProfile(); applyProfile(); }
-            document.getElementById('nameInput').style.display='none';
-            document.getElementById('nameSaveBtn').style.display='none';
-            document.getElementById('nameVal').style.display='';
-            document.getElementById('nameEditBtn').style.display='';
-        } else {
-            const v = document.getElementById('pwdInput').value;
-            if(v){ userProfile.pwd=v; saveProfile(); applyProfile(); }
-            document.getElementById('pwdInput').style.display='none';
-            document.getElementById('pwdSaveBtn').style.display='none';
-            document.getElementById('pwdVal').style.display='';
-            document.getElementById('pwdEditBtn').style.display='';
-        }
-    }
-
-    function changeAvatar(input){
-        const file = input.files[0]; if(!file) return;
-        const reader = new FileReader();
-        reader.onload = e=>{ userProfile.avatar=e.target.result; saveProfile(); applyProfile(); };
-        reader.readAsDataURL(file);
-    }
-
-    function copyUid(){
-        navigator.clipboard.writeText(userProfile.id).then(()=>{
-            const btn = document.querySelector('.dp-uid-copy');
-            btn.textContent='✔ 已复制'; setTimeout(()=>btn.textContent='⎘ 复制', 1500);
-        });
-    }
-
-    applyProfile();
-    renderAll();
-</script>
+<script src="js/main.js"></script>
 </body>
 </html>
