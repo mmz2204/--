@@ -27,6 +27,9 @@
             --border-bright: rgba(255,255,255,0.18);
             --card: rgba(255,255,255,0.06);
             --card-hover: rgba(255,255,255,0.09);
+            /* 背景色变量 - 与主页保持一致 */
+            --bg-gradient: linear-gradient(180deg, #0f1419 0%, #1a1d23 50%, #0f1419 100%);
+            --bg-noise-opacity: 0.2;
         }
 
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -35,24 +38,22 @@
             min-height: 100vh;
             font-family: "PingFang SC","Microsoft YaHei",monospace, sans-serif;
             color: var(--text-bright);
-            background: linear-gradient(135deg, #04061a 0%, #080d24 50%, #060b1e 100%);
+            background: var(--bg-gradient);
             padding: 16px;
+            position: relative;
         }
 
         body::before {
             content:'';
             position:fixed; inset:0; z-index:-2;
-            background:
-                radial-gradient(ellipse 70% 55% at 15% 20%, rgba(99,102,241,0.35) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 85% 75%, rgba(6,182,212,0.28) 0%, transparent 55%),
-                radial-gradient(ellipse 50% 40% at 50% 50%, rgba(139,92,246,0.20) 0%, transparent 60%);
+            background: var(--bg-gradient);
         }
 
         body::after {
             content:'';
             position:fixed; inset:0; z-index:-1;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-            opacity: 0.3;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+            opacity: var(--bg-noise-opacity);
             pointer-events:none;
         }
 
@@ -421,7 +422,7 @@
         .codec-layout {
             display: flex;
             gap: 16px;
-            align-items: flex-start;
+            align-items: center;
         }
 
         .codec-layout .json-panel {

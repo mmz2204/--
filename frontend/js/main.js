@@ -395,19 +395,17 @@
         card.className='card'+(isFav?' favorited':'');
         const hotBadge = (showHot && t.hot) ? `<span class="hot-badge"></span>` : '';
         const foreignBadge = t.foreign ? `<span class="foreign-badge">国外</span>` : '';
-        const usesLine = (showHot && t.hot) ? `<div class="card-uses">🔥 ${fmtUses(t.uses)} 次使用</div>` : '';
         card.innerHTML=`
             ${hotBadge}
-            ${foreignBadge}
             <button class="star-btn ${isFav?'active':''}" title="${isFav?'取消收藏':'收藏'}">
                 ${isFav?'★':'☆'}
             </button>
+            ${foreignBadge}
             <div class="card-header">
                 <div class="icon-small">${t.icon}</div>
                 <h3>${t.name}</h3>
             </div>
             <p>${t.desc}</p>
-            ${usesLine}
             <button class="btn-run">打开</button>
         `;
         card.querySelector('.star-btn').addEventListener('click', e=>{

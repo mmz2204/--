@@ -13,11 +13,14 @@
             --glass-dark: rgba(15, 23, 42, 0.75);
             --glass-card: rgba(255,255,255,0.05);
             --primary-dark: #5b21b6;
+            /* 背景色变量 - 统一管理 */
+            --bg-gradient: linear-gradient(180deg, #0f1419 0%, #1a1d23 50%, #0f1419 100%);
+            --bg-noise-opacity: 0.2;
         }
 
         * { margin:0; padding:0; box-sizing:border-box; }
 
-        /* ── 深色夜景背景 ── */
+        /* ── 深色简洁背景 ── */
         body {
             min-height: 100vh; height: 100vh;
             font-family: "PingFang SC","Microsoft YaHei",sans-serif;
@@ -26,27 +29,21 @@
             display: flex; flex-direction: column;
             padding: 18px;
             position: relative;
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            background: var(--bg-gradient);
         }
 
-        /* 背景层：夜景城市光晕 */
+        /* 背景层：简洁深色 */
         body::before {
             content:'';
             position:fixed; inset:0; z-index:-2;
-            background:
-                radial-gradient(ellipse 80% 60% at 80% 20%, rgba(139, 92, 246, 0.35) 0%, transparent 55%),
-                radial-gradient(ellipse 70% 50% at 20% 70%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
-                radial-gradient(ellipse 60% 40% at 50% 50%, rgba(168, 85, 247, 0.2) 0%, transparent 55%),
-                radial-gradient(ellipse 50% 35% at 15% 30%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
-                radial-gradient(ellipse 45% 30% at 85% 75%, rgba(236, 72, 153, 0.12) 0%, transparent 45%),
-                linear-gradient(135deg, #0f172a 0%, #1e1b4b 30%, #1e293b 60%, #0f172a 100%);
+            background: var(--bg-gradient);
         }
         /* 背景噪点增加质感 */
         body::after {
             content:'';
             position:fixed; inset:0; z-index:-1;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
-            opacity: 0.3;
+            opacity: var(--bg-noise-opacity);
             pointer-events:none;
         }
 
@@ -467,9 +464,13 @@
         }
         .recent-bar::-webkit-scrollbar { height: 0; }
         .recent-label {
-            font-size: 11px; color: var(--text-dim);
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px; padding: 4px 12px;
+            font-size: 12px; color: var(--text-main);
             white-space: nowrap; flex-shrink: 0;
-            padding-right: 4px;
+            cursor: default;
         }
         .recent-divider { width:1px; height:14px; background:var(--border-bright); flex-shrink:0; }
         .recent-item {
@@ -688,9 +689,9 @@
             box-shadow: 0 2px 6px rgba(239,68,68,0.5);
         }
         
-        /* ── 国外标签（右下角圆角小标签） ── */
+        /* ── 国外标签（收藏按钮下方） ── */
         .foreign-badge {
-            position: absolute; bottom: 48px; right: 8px;
+            position: absolute; top: 42px; right: 8px;
             padding: 2px 8px;
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
             color: #fff; font-size: 10px; font-weight: 600;
