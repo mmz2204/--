@@ -801,16 +801,13 @@
         document.getElementById('md5-string-output').value = '';
     }
     
-    // 标准MD5实现
+    // 标准 MD5：输入按 UTF-8 字节参与哈希（与常见工具一致）
     function md5(str) {
-        const bytes = [];
-        for (let i = 0; i < str.length; i++) {
-            bytes.push(str.charCodeAt(i) & 0xff);
-        }
+        const bytes = new TextEncoder().encode(str);
         return md5Array(bytes);
     }
     
-    // 核心MD5算法
+    // 核心 MD5 算法（input 为字节序列，Uint8Array 或类数组）
     function md5Array(input) {
         const s = [
             7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
@@ -831,14 +828,18 @@
         let d0 = 0x10325476;
         
         const originalLength = input.length;
-        const originalLengthBits = originalLength * 8;
-        
-        const padded = new Uint8Array(((originalLength + 8) >>> 6) << 6);
+        const bitLen = originalLength * 8;
+        const low32 = bitLen >>> 0;
+        const high32 = (Math.floor(bitLen / 4294967296)) >>> 0;
+        // 1 字节 0x80 + 8 字节小端 64 位比特长度，总长须为 64 的倍数（RFC 1321）
+        const paddedLen = ((originalLength + 9 + 63) >> 6) << 6;
+        const padded = new Uint8Array(paddedLen);
         padded.set(input);
         padded[originalLength] = 0x80;
-        
-        for (let i = 0; i < 8; i++) {
-            padded[padded.length - 8 + i] = (originalLengthBits >>> (8 * i)) & 0xff;
+        const end = padded.length - 8;
+        for (let i = 0; i < 4; i++) {
+            padded[end + i] = (low32 >>> (8 * i)) & 0xff;
+            padded[end + 4 + i] = (high32 >>> (8 * i)) & 0xff;
         }
         
         for (let offset = 0; offset < padded.length; offset += 64) {
@@ -1087,11 +1088,15 @@
                     <div class="json-tool">
                         <div class="tool-section">
                             <div class="tool-section-title">UUID 生成器</div>
-                            <div class="tool-buttons" style="margin-bottom:20px;">
-                                <button onclick="generateUUID()" class="btn-primary">生成 UUID</button>
-                                <button onclick="copyUUID()" class="btn-secondary">复制</button>
+                            <div style="padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);">
+                                <div style="font-size:14px;color:#94a3b8;margin-bottom:8px;">生成结果</div>
+                                <div class="tool-buttons" style="margin-bottom:12px;">
+                                    <button type="button" onclick="generateUUID()" class="btn-primary">生成 UUID</button>
+                                    <button type="button" onclick="copyUUID()" class="btn-secondary">复制</button>
+                                </div>
+                                <textarea id="uuid-output" class="tool-surface-textarea uuid-output-field" placeholder="点击上方按钮生成 UUID" readonly rows="4"
+                                    style="width:100%;min-height:100px;padding:12px 14px;font-family:ui-monospace,Consolas,monospace;font-size:14px;line-height:1.5;border-radius:10px;box-sizing:border-box;resize:vertical;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.35);color:#e2e8f0;box-shadow:inset 0 2px 10px rgba(0,0,0,0.35);-webkit-appearance:none;appearance:none;"></textarea>
                             </div>
-                            <textarea id="uuid-output" placeholder="点击上方按钮生成 UUID" readonly style="min-height:100px;"></textarea>
                         </div>
                     </div>
                 `;

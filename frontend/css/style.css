@@ -1094,6 +1094,46 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
         }
+        /* 工具页多行输入：与深色卡片一致（.tool-content 未覆盖 textarea 时浏览器默认为白底） */
+        .tool-surface-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.22);
+            color: var(--text-main);
+            font-family: ui-monospace, Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            box-sizing: border-box;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
+            outline: none;
+        }
+        .tool-surface-textarea:focus {
+            border-color: var(--primary);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        .tool-surface-textarea::placeholder {
+            color: var(--text-dim);
+            opacity: 0.9;
+        }
+        /* UUID 等：内联已设底色，此处补焦点/占位符（部分浏览器会盖掉 class） */
+        textarea.uuid-output-field,
+        textarea#uuid-output {
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        textarea#uuid-output::placeholder {
+            color: #94a3b8;
+            opacity: 0.95;
+        }
+        textarea#uuid-output:focus {
+            outline: none;
+            border-color: rgba(99, 102, 241, 0.85) !important;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.35), 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
         
         /* 颜色转换 */
         .color-picker-section {
