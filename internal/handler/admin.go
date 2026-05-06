@@ -524,3 +524,156 @@ func DeleteFeedback(c *gin.Context) {
 		"message": "删除成功",
 	})
 }
+
+// AdminResponse 管理员响应结构体（不包含密码）
+type AdminResponse struct {
+	ID        uint      `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	IsAdmin   bool      `json:"is_admin"`
+	Status    int       `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// GetAllAdmins 获取所有管理员列表
+func GetAllAdmins(c *gin.Context) {
+	admins, err := model.GetAllAdmins(config.DB)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取管理员列表失败"})
+		return
+	}
+
+	// 构建响应数据（不包含密码）
+	var response []AdminResponse
+	for _, admin := range admins {
+		response = append(response, AdminResponse{
+			ID:        admin.ID,
+			Username:  admin.Username,
+			Email:     admin.Email,
+			IsAdmin:   admin.IsAdmin,
+			Status:    admin.Status,
+			CreatedAt: admin.CreatedAt,
+			UpdatedAt: admin.UpdatedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "获取成功",
+		"data":    response,
+	})
+}
+
+// ResetPasswordRequest 重置密码请求结构体
+type ResetPasswordRequest struct {
+	NewPassword string `json:"new_password" binding:"required"`
+}
+
+// StatusRequest 更新状态请求结构体
+type StatusRequest struct {
+	Status int `json:"status" binding:"required"`
+}
+
+// ResetAdminPassword 重置管理员密码
+func ResetAdminPassword(c *gin.Context) {
+	idStr := c.Param("id")
+	var id uint
+	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的ID"})
+		return
+	}
+
+	var req ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		return
+	}
+
+	var admin model.Admin
+	if err := config.DB.First(&admin, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
+
+	if err := admin.SetPassword(req.NewPassword); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "密码加密失败"})
+		return
+	}
+
+	if err := config.DB.Save(&admin).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存密码失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "密码重置成功",
+	})
+}
+
+// UpdateAdminStatus 更新管理员状态
+func UpdateAdminStatus(c *gin.Context) {
+	idStr := c.Param("id")
+	var id uint
+	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的ID"})
+		return
+	}
+
+	var req StatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		return
+	}
+
+	// 参数验证：状态值只能是0或1
+	if req.Status != 0 && req.Status != 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "状态值只能为0(禁用)或1(启用)"})
+		return
+	}
+
+	var admin model.Admin
+	if err := config.DB.First(&admin, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
+
+	admin.Status = req.Status
+	if err := config.DB.Save(&admin).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新状态失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "状态更新成功",
+	})
+}
+
+// DeleteAdmin 删除管理员
+func DeleteAdmin(c *gin.Context) {
+	idStr := c.Param("id")
+	var id uint
+	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的ID"})
+		return
+	}
+
+	// 不能删除自己
+	currentID := c.GetUint("admin_id")
+	if currentID == id {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "不能删除自己"})
+		return
+	}
+
+	if err := model.DeleteAdmin(config.DB, id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除管理员失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "删除成功",
+	})
+}

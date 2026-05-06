@@ -4,19 +4,20 @@
             --primary2: #8b5cf6;
             --accent: #06b6d4;
             --star: #f59e0b;
-            --text-main: #f1f5f9;
+            --text-main: #e2e8f0;
             --text-dim: #94a3b8;
-            --border: rgba(255,255,255,0.10);
-            --border-bright: rgba(255,255,255,0.18);
+            --text-bright: #ffffff;
+            --border: rgba(255,255,255,0.08);
+            --border-bright: rgba(255,255,255,0.12);
             --glass: rgba(255,255,255,0.06);
-            --glass-dark: rgba(10,15,30,0.55);
-            --glass-card: rgba(255,255,255,0.07);
+            --glass-dark: rgba(15, 23, 42, 0.75);
+            --glass-card: rgba(255,255,255,0.05);
             --primary-dark: #5b21b6;
         }
 
         * { margin:0; padding:0; box-sizing:border-box; }
 
-        /* ── 动态渐变背景 ── */
+        /* ── 深色夜景背景 ── */
         body {
             min-height: 100vh; height: 100vh;
             font-family: "PingFang SC","Microsoft YaHei",sans-serif;
@@ -25,24 +26,27 @@
             display: flex; flex-direction: column;
             padding: 18px;
             position: relative;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
         }
 
-        /* 背景层：多彩光晕 */
+        /* 背景层：夜景城市光晕 */
         body::before {
             content:'';
             position:fixed; inset:0; z-index:-2;
             background:
-                radial-gradient(ellipse 70% 55% at 15% 20%, rgba(99,102,241,0.35) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 85% 75%, rgba(6,182,212,0.28) 0%, transparent 55%),
-                radial-gradient(ellipse 50% 40% at 50% 50%, rgba(139,92,246,0.20) 0%, transparent 60%),
-                linear-gradient(135deg, #04061a 0%, #080d24 50%, #060b1e 100%);
+                radial-gradient(ellipse 80% 60% at 80% 20%, rgba(139, 92, 246, 0.35) 0%, transparent 55%),
+                radial-gradient(ellipse 70% 50% at 20% 70%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 50% 50%, rgba(168, 85, 247, 0.2) 0%, transparent 55%),
+                radial-gradient(ellipse 50% 35% at 15% 30%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse 45% 30% at 85% 75%, rgba(236, 72, 153, 0.12) 0%, transparent 45%),
+                linear-gradient(135deg, #0f172a 0%, #1e1b4b 30%, #1e293b 60%, #0f172a 100%);
         }
         /* 背景噪点增加质感 */
         body::after {
             content:'';
             position:fixed; inset:0; z-index:-1;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-            opacity: 0.5;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+            opacity: 0.3;
             pointer-events:none;
         }
 
@@ -61,15 +65,18 @@
         header {
             position: relative;
             z-index: 100;
-            border-radius: 18px;
-            padding: 11px 22px;
+            border-radius: 20px;
+            padding: 12px 24px;
             display: flex; align-items: center; gap: 28px;
-            margin-bottom: 14px;
-            background: rgba(255,255,255,0.06);
-            backdrop-filter: blur(30px) saturate(180%);
-            -webkit-backdrop-filter: blur(30px) saturate(180%);
-            border: 1px solid var(--border-bright);
-            box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12);
+            margin-bottom: 16px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.1);
         }
 
         /* ── LOGO ── */
@@ -116,19 +123,23 @@
         }
         .search-input {
             width: 100%;
-            background: rgba(0,0,0,0.25);
-            border: 1px solid var(--border-bright);
-            backdrop-filter: blur(10px);
-            padding: 9px 16px 9px 38px;
-            border-radius: 12px;
-            color: #fff; outline: none; font-size: 13px;
-            transition: 0.25s;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 10px 16px 10px 38px;
+            border-radius: 14px;
+            color: var(--text-main); outline: none; font-size: 14px;
+            transition: 0.3s;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
         .search-input::placeholder { color: var(--text-dim); }
         .search-input:focus {
-            border-color: rgba(99,102,241,0.6);
-            background: rgba(99,102,241,0.08);
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+            border-color: rgba(147, 112, 219, 0.5);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 0 0 4px rgba(147, 112, 219, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.12);
         }
 
         /* ── 用户头像 ── */
@@ -171,12 +182,12 @@
             right: 0;
             margin-top: 8px;
             width: 280px;
-            background: rgba(12,18,38,0.92);
-            backdrop-filter: blur(30px) saturate(180%);
-            -webkit-backdrop-filter: blur(30px) saturate(180%);
-            border: 1px solid var(--border-bright);
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 16px;
-            box-shadow: 0 16px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.1);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
             z-index: 9999;
             overflow: hidden;
         }
@@ -193,8 +204,9 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(12px) saturate(150%);
+            -webkit-backdrop-filter: blur(12px) saturate(150%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -202,108 +214,140 @@
         }
         .modal-content {
             width: 90%;
-            max-width: 420px;
-            background: rgba(12,18,38,0.95);
-            backdrop-filter: blur(30px) saturate(180%);
-            border: 1px solid var(--border-bright);
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(32px) saturate(180%);
+            -webkit-backdrop-filter: blur(32px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 24px;
+            box-shadow: 
+                0 25px 60px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.08);
             overflow: hidden;
             position: relative;
             z-index: 99999999 !important;
+            animation: modalPop 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
         }
         .modal-header {
-            padding: 16px 20px;
+            padding: 20px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.02);
         }
         .modal-title {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             color: var(--text-bright);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .modal-close {
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             border: none;
-            background: rgba(255,255,255,0.08);
+            background: rgba(255, 255, 255, 0.08);
             color: var(--text-dim);
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            transition: all 0.25s;
         }
         .modal-close:hover {
-            background: rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.15);
             color: var(--text-bright);
+            transform: scale(1.05);
         }
         .modal-body {
-            padding: 20px;
+            padding: 24px;
         }
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 18px;
         }
         .form-group label {
             display: block;
             font-size: 13px;
             color: var(--text-dim);
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+            font-weight: 500;
         }
         .form-input {
             width: 100%;
-            padding: 10px 14px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid var(--border);
-            border-radius: 10px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
             color: var(--text-bright);
-            font-size: 14px;
+            font-size: 15px;
             box-sizing: border-box;
-            transition: all 0.2s;
+            transition: all 0.3s;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
         }
         .form-input:focus {
             outline: none;
-            border-color: var(--primary);
-            background: rgba(255,255,255,0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 0 4px rgba(99, 102, 241, 0.1);
         }
         .form-input::placeholder {
-            color: var(--text-dim);
+            color: rgba(148, 163, 184, 0.5);
         }
         .modal-footer {
-            padding: 16px 20px;
+            padding: 16px 24px;
             display: flex;
             gap: 12px;
-            border-top: 1px solid var(--border);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.02);
         }
         .btn {
             flex: 1;
-            padding: 10px 20px;
+            padding: 12px 20px;
             border: none;
-            border-radius: 10px;
+            border-radius: 14px;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s;
         }
         .btn-cancel {
-            background: rgba(255,255,255,0.08);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             color: var(--text-dim);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
         }
         .btn-cancel:hover {
-            background: rgba(255,255,255,0.12);
+            background: rgba(255, 255, 255, 0.12);
             color: var(--text-bright);
+            border-color: rgba(255, 255, 255, 0.12);
         }
         .btn-primary {
-            background: var(--primary);
-            color: white;
+            background: rgba(255, 255, 255, 0.95);
+            color: #1f2937;
+            box-shadow: 
+                0 6px 20px rgba(0, 0, 0, 0.18),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
         }
         .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 
+                0 8px 24px rgba(0, 0, 0, 0.22),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
         }
         .form-footer {
             text-align: center;
@@ -368,9 +412,9 @@
         .dp-btn:hover { opacity: 0.85; transform: translateY(-1px); }
         .dp-input {
             flex: 1; font-size: 13px; color: var(--text-main);
-            background: rgba(0,0,0,0.3); border: 1px solid rgba(99,102,241,0.5);
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(99,102,241,0.3);
             border-radius: 8px; padding: 7px 11px; outline: none;
-            box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
+            box-shadow: 0 0 0 2px rgba(99,102,241,0.1);
         }
         .dp-edit-btn {
             width: 28px; height: 28px; border-radius: 7px;
@@ -415,11 +459,11 @@
             display: flex; align-items: center; gap: 7px;
             margin-bottom: 14px;
             overflow-x: auto;
-            background: rgba(255,255,255,0.04);
-            backdrop-filter: blur(20px) saturate(150%);
-            -webkit-backdrop-filter: blur(20px) saturate(150%);
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: none;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
         }
         .recent-bar::-webkit-scrollbar { height: 0; }
         .recent-label {
@@ -431,17 +475,17 @@
         .recent-item {
             display: flex; align-items: center; gap: 6px;
             background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.08);
             border-radius: 8px; padding: 4px 12px;
-            font-size: 12px; color: #cbd5e1;
+            font-size: 12px; color: var(--text-main);
             cursor: pointer; white-space: nowrap; flex-shrink: 0;
             transition: 0.2s; backdrop-filter: blur(8px);
         }
         .recent-item:hover {
-            background: rgba(99,102,241,0.2);
-            border-color: rgba(99,102,241,0.45);
+            background: rgba(139,92,246,0.2);
+            border-color: rgba(139,92,246,0.4);
             color: #fff; transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(99,102,241,0.2);
+            box-shadow: 0 2px 8px rgba(139,92,246,0.2);
         }
         .recent-item .ri-icon { font-size: 13px; }
         .recent-empty {
@@ -455,31 +499,39 @@
         /* ── 侧边栏 ── */
         aside {
             width: 176px; flex-shrink: 0;
-            border-radius: 18px;
+            border-radius: 20px;
             padding: 14px 8px;
             display: flex; flex-direction: column; gap: 2px;
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(28px) saturate(160%);
-            -webkit-backdrop-filter: blur(28px) saturate(160%);
-            border: 1px solid var(--border-bright);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            will-change: backdrop-filter, transform;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
         }
         .nav-item {
-            padding: 10px 14px; border-radius: 10px; cursor: pointer;
-            color: var(--text-dim); font-size: 13px; transition: 0.2s;
+            padding: 11px 14px; border-radius: 12px; cursor: pointer;
+            color: var(--text-dim); font-size: 13px; transition: 0.25s;
             display: flex; align-items: center; justify-content: flex-start;
-            gap: 6px;
+            gap: 8px;
+            position: relative;
         }
         .nav-item > span:first-child { flex: 1; }
         .nav-item:hover {
-            background: rgba(255,255,255,0.07);
+            background: rgba(255, 255, 255, 0.08);
             color: var(--text-main);
         }
         .nav-item.active {
-            background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.18));
-            color: #a5b4fc; font-weight: 600;
-            border: 1px solid rgba(99,102,241,0.3);
-            box-shadow: 0 2px 12px rgba(99,102,241,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text-bright); font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 
+                0 2px 12px rgba(147, 112, 219, 0.15), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
         }
         .nav-badge {
             background: var(--star);
@@ -491,17 +543,19 @@
         /* ── 工具主区域 ── */
         .tools-box {
             flex: 1;
-            border-radius: 20px;
-            padding: 22px;
+            border-radius: 22px;
+            padding: 24px;
             overflow-y: auto;
-            background: rgba(255,255,255,0.04);
-            backdrop-filter: blur(24px) saturate(150%);
-            -webkit-backdrop-filter: blur(24px) saturate(150%);
-            border: 1px solid var(--border);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.25), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
         }
         .tools-box::-webkit-scrollbar { width: 4px; }
-        .tools-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+        .tools-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 
         .section-title {
             font-size: 12px; color: var(--text-dim);
@@ -518,44 +572,57 @@
 
         /* ── 工具卡片（核心毛玻璃） ── */
         .card {
-            background: rgba(255,255,255,0.07);
-            backdrop-filter: blur(16px) saturate(160%);
-            -webkit-backdrop-filter: blur(16px) saturate(160%);
-            border: 1px solid rgba(255,255,255,0.13);
-            border-radius: 16px; padding: 16px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px; padding: 18px;
             display: flex; flex-direction: column;
             position: relative;
             transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1);
+            box-shadow: 
+                0 4px 24px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
         .card::before {
-            content:''; position:absolute; inset:0; border-radius:16px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 60%);
+            content:''; position:absolute; inset:0; border-radius:18px;
+            background: linear-gradient(145deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 50%, rgba(139, 92, 246, 0.08) 100%);
             pointer-events:none;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
         .card:hover {
-            transform: translateY(-5px) scale(1.01);
-            border-color: rgba(99,102,241,0.45);
-            background: rgba(99,102,241,0.12);
-            box-shadow: 0 12px 36px rgba(99,102,241,0.25), 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+            transform: translateY(-6px) scale(1.02);
+            border-color: rgba(139, 92, 246, 0.4);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 
+                0 12px 36px rgba(139, 92, 246, 0.25), 
+                0 4px 16px rgba(0, 0, 0, 0.2), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+        .card:hover::before {
+            opacity: 1;
         }
         .card.favorited {
-            border-color: rgba(245,158,11,0.35);
-            box-shadow: 0 4px 20px rgba(245,158,11,0.15), 0 4px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+            box-shadow: 
+                0 4px 20px rgba(245, 158, 11, 0.15), 
+                0 4px 16px rgba(0, 0, 0, 0.18), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         /* 收藏按钮 */
         .star-btn {
             position:absolute; top:11px; right:11px;
-            background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.08);
             width: 26px; height: 26px; border-radius: 7px;
             display: flex; align-items: center; justify-content: center;
             font-size: 13px; cursor: pointer;
             color: rgba(255,255,255,0.3);
             transition: 0.2s; backdrop-filter: blur(8px);
         }
-        .star-btn:hover { color: var(--star); border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.1); transform: scale(1.15); }
-        .star-btn.active { color: var(--star); border-color: rgba(245,158,11,0.5); background: rgba(245,158,11,0.12); }
+        .star-btn:hover { color: var(--star); border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08); transform: scale(1.15); }
+        .star-btn.active { color: var(--star); border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.1); }
 
         .card-header {
             display: flex; align-items: center; gap: 11px; margin-bottom: 10px;
@@ -1145,20 +1212,20 @@
         .tool-page {
             max-width: 1100px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 20px 20px 20px;
         }
         .tool-header {
             display: flex;
             align-items: center;
             gap: 20px;
-            margin-bottom: 24px;
+            padding: 24px;
             background: rgba(255,255,255,0.05);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            padding: 24px;
-            border-radius: 20px;
+            border-radius: 20px 20px 0 0;
             border: 1px solid var(--border-bright);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            border-bottom: none;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
         }
         .tool-header-icon {
             width: 72px;
@@ -1237,18 +1304,16 @@
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             padding: 32px;
-            border-radius: 20px;
+            border-radius: 0 0 20px 20px;
             border: 1px solid var(--border-bright);
+            border-top: none;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
         }
         .tool-section {
             margin-bottom: 0;
         }
         .tool-section-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 20px;
+            display: none;
         }
 
         /* JSON格式化工具 */

@@ -83,10 +83,27 @@ func main() {
 		authRoutes.GET("/feedback/remaining", handler.GetFeedbackRemaining)
 	}
 
-	// 工具详情页面路由
+	// 工具详情页面路由 - 支持多种格式
 	r.GET("/tool", func(c *gin.Context) {
 		c.File("./frontend/tool.html")
 	})
+	r.GET("/tool/:id", func(c *gin.Context) {
+		c.File("./frontend/tool.html")
+	})
+	r.GET("/tool/:id/:slug", func(c *gin.Context) {
+		c.File("./frontend/tool.html")
+	})
+
+	// 分类页面路由
+	r.GET("/category/:id", func(c *gin.Context) {
+		c.File("./frontend/index.html")
+	})
+	r.GET("/category/:id/:name", func(c *gin.Context) {
+		c.File("./frontend/index.html")
+	})
+
+	// Sitemap
+	r.GET("/sitemap.xml", handler.GenerateSitemap)
 
 	// JSON工具页面路由 - 支持独立路径用于SEO
 	r.GET("/json", func(c *gin.Context) {
@@ -181,6 +198,12 @@ func main() {
 			// 反馈管理
 			adminRoutes.GET("/feedbacks", handler.GetFeedbacks)
 			adminRoutes.DELETE("/feedbacks/:id", handler.DeleteFeedback)
+
+			// 用户管理
+			adminRoutes.GET("/admins", handler.GetAllAdmins)
+			adminRoutes.PUT("/admins/:id/password", handler.ResetAdminPassword)
+			adminRoutes.PUT("/admins/:id/status", handler.UpdateAdminStatus)
+			adminRoutes.DELETE("/admins/:id", handler.DeleteAdmin)
 		}
 	}
 

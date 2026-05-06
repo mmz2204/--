@@ -1,6 +1,8 @@
 
     let tools = [];
     let categories = [];
+    // 滚动导航标志，默认启用
+    window.scrollNavDisabled = false;
     
     // 从静态JSON加载分类和工具数据
     async function loadDataFromAPI() {
@@ -19,6 +21,7 @@
                 description: t.description || '',
                 detailed_description: t.detailed_description || '',
                 cat: t.category_id ? 'cat_' + t.category_id : 'other',
+                category_id: t.category_id,
                 hot: t.is_hot || false,
                 foreign: t.is_foreign || false,
                 uses: t.usage_count || 0,
@@ -44,6 +47,9 @@
             
             renderAll();
             await loadFavorites();
+            
+            // 处理URL锚点，跳转到对应分类位置
+            handleHashNavigation();
         } catch (error) {
             console.error('加载数据失败:', error);
             // 如果加载失败，尝试从API加载
@@ -99,6 +105,34 @@
 
     let favorites = new Set(JSON.parse(localStorage.getItem('fav')||'[]'));
     function saveFav(){ localStorage.setItem('fav', JSON.stringify([...favorites])); }
+    
+    // 处理URL锚点导航
+    function handleHashNavigation() {
+        const hash = window.location.hash;
+        if (hash.startsWith('#cat-section_')) {
+            const categoryId = hash.replace('#cat-section_', '');
+            if (categoryId && categoryId > 0) {
+                // 立即尝试滚动到对应位置
+                const tryScroll = () => {
+                    const categorySection = document.getElementById('cat-section_' + categoryId);
+                    if (categorySection) {
+                        // 激活对应的导航项
+                        const targetNav = document.querySelector('.nav-item[data-category-id="' + categoryId + '"]');
+                        if (targetNav) {
+                            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                            targetNav.classList.add('active');
+                        }
+                        // 立即滚动到对应分类区域
+                        categorySection.scrollIntoView({ behavior: 'auto', block: 'center' });
+                    } else {
+                        // 如果元素还没加载，延迟重试
+                        setTimeout(tryScroll, 100);
+                    }
+                };
+                tryScroll();
+            }
+        }
+    }
 
     // ── 最近浏览记录（最多10条）──
     let recentIds = JSON.parse(localStorage.getItem('recent')||'[]');
@@ -273,7 +307,7 @@
             const btn = document.createElement('span');
             btn.className='recent-item';
             btn.innerHTML=`<span class="ri-icon">${t.icon}</span>${t.name}`;
-            btn.onclick=()=>{ recordRecent(t.id); };
+            btn.onclick=()=>{ recordRecent(t.id); openTool(t); };
             bar.insertBefore(btn, divider.nextSibling);
         });
     }
@@ -411,6 +445,7 @@
         categories.forEach(cat => {
             const div = document.createElement('div');
             div.className = 'nav-item';
+            div.setAttribute('data-category-id', cat.id);
             div.onclick = (e) => switchNav(e.currentTarget, 'cat_' + cat.id);
             div.innerHTML = `<span>${cat.icon} ${cat.name}</span>`;
             navContainer.appendChild(div);
@@ -442,8 +477,10 @@
             if (catTools.length > 0) {
                 const div = document.createElement('div');
                 div.innerHTML = `
-                    <div class="section-title" style="margin-top:22px;">${cat.icon} ${cat.name}</div>
-                    <div class="grid" id="grid-cat_${cat.id}_home"></div>
+                    <div class="category-section" id="cat-section_${cat.id}">
+                        <div class="section-title" style="margin-top:22px;">${cat.icon} ${cat.name}</div>
+                        <div class="grid" id="grid-cat_${cat.id}_home"></div>
+                    </div>
                 `;
                 container.appendChild(div);
                 renderGrid('grid-cat_' + cat.id + '_home', catTools);
@@ -452,6 +489,9 @@
     }
 
     function renderAll(){
+        // 确保滚动导航已启用
+        window.scrollNavDisabled = false;
+        
         const hotList = window.hotTools || [...tools].filter(t=>t.hot);
         renderGrid('grid-hot', hotList, true);
         
@@ -467,20 +507,231 @@
         });
         
         renderFav(); updateBadge(); renderRecentBar();
+        
+        // 延迟初始化滚动导航（等待DOM渲染完成）
+        setTimeout(() => {
+            if (window.scrollNavInitialized) return;
+            window.scrollNavInitialized = true;
+            setupScrollNavigation();
+        }, 500);
+    }
+    
+    // 滚动时自动选中导航栏
+    function setupScrollNavigation() {
+        const mainContent = document.querySelector('.tools-box');
+        if (!mainContent) return;
+
+        let isScrolling = false;
+
+        mainContent.addEventListener('scroll', () => {
+            // 如果正在进行点击导航，跳过滚动检测
+            if (window.isClickNavigating) return;
+            
+            if (isScrolling) return;
+            isScrolling = true;
+
+            requestAnimationFrame(() => {
+                const newCategoryId = updateNavigationOnScroll();
+
+                // 如果找到了新的分类ID，才更新选中状态
+                if (newCategoryId !== null && newCategoryId !== undefined && newCategoryId !== window.lastActiveCategoryId) {
+                    // 延迟清除旧选中，给新选中让路
+                    if (window.scrollTimeout) clearTimeout(window.scrollTimeout);
+
+                    // 先设置新的选中状态
+                    const navItems = document.querySelectorAll('.nav-item');
+                    navItems.forEach(item => {
+                        const itemCatId = item.getAttribute('data-category-id');
+                        if (itemCatId === String(newCategoryId) || (newCategoryId === 'home' && item === document.querySelector('.nav-item:first-child'))) {
+                            item.classList.add('active');
+                        }
+                    });
+
+                    // 短暂延迟后移除其他项的选中状态（除了新的和首页）
+                    window.scrollTimeout = setTimeout(() => {
+                        navItems.forEach(item => {
+                            const itemCatId = item.getAttribute('data-category-id');
+                            if (itemCatId !== String(newCategoryId)) {
+                                item.classList.remove('active');
+                            }
+                        });
+                    }, 50);
+
+                    window.lastActiveCategoryId = newCategoryId;
+                }
+
+                isScrolling = false;
+            });
+        });
+    }
+
+    function updateNavigationOnScroll() {
+        // 如果在工具页面，禁用滚动导航
+        if (window.scrollNavDisabled) return;
+        
+        const mainContent = document.querySelector('.tools-box');
+        if (!mainContent) return;
+        
+        const scrollTop = mainContent.scrollTop;
+        const aside = document.querySelector('aside');
+        if (!aside) return;
+        
+        // 获取侧边栏导航项
+        const navItems = aside.querySelectorAll('.nav-item');
+        if (navItems.length === 0) return;
+        
+        // 查找最近的分类标题（只在首页视图中）
+        const activeView = document.querySelector('.view.active');
+        if (!activeView || activeView.id !== 'view-all') return;
+        
+        const sectionTitles = activeView.querySelectorAll('.section-title');
+        if (sectionTitles.length === 0) return;
+        
+        let closestCategoryId = null;
+        let minDistance = Infinity;
+        let closestTitleTop = Infinity;
+        
+        sectionTitles.forEach(title => {
+            const rect = title.getBoundingClientRect();
+            const mainRect = mainContent.getBoundingClientRect();
+            const titleTop = rect.top - mainRect.top + scrollTop;
+            
+            // 计算标题顶部距离视口顶部的距离
+            const distanceToTop = titleTop - scrollTop;
+            
+            // 找到进入视口的标题（在视口顶部150px范围内）
+            if (distanceToTop >= -50 && distanceToTop <= 200) {
+                if (titleTop < closestTitleTop) {
+                    closestTitleTop = titleTop;
+                    // 提取纯文本名称（移除图标）
+                    const titleText = title.textContent.trim();
+                    // 尝试匹配分类
+                    const matchedCat = categories.find(cat => {
+                        const catNameWithIcon = cat.icon + ' ' + cat.name;
+                        return titleText === catNameWithIcon || titleText.includes(cat.name);
+                    });
+                    if (matchedCat) {
+                        closestCategoryId = matchedCat.id;
+                    }
+                }
+            }
+        });
+        
+        // 如果没有找到分类，检查是否在顶部（首页）
+        if (!closestCategoryId && scrollTop < 100) {
+            closestCategoryId = 'home';
+        }
+
+        // 返回分类ID，由setupScrollNavigation处理选中状态
+        if (closestCategoryId === 'home') {
+            // 选中首页
+            const homeNav = document.querySelector('.nav-item:first-child');
+            if (homeNav) homeNav.classList.add('active');
+            return 'home';
+        } else if (closestCategoryId !== null && closestCategoryId !== undefined) {
+            // 选中对应分类
+            const targetNav = document.querySelector('.nav-item[data-category-id="' + closestCategoryId + '"]');
+            if (targetNav) {
+                targetNav.classList.add('active');
+                return closestCategoryId;
+            }
+        }
+        return null;
     }
 
     function switchNav(el, view){
         // 重置 SEO 标签为首页
         resetSEOTags();
         
+        // 立即清除滚动导航的延迟定时器，避免状态冲突
+        if (window.scrollTimeout) {
+            clearTimeout(window.scrollTimeout);
+        }
+        
+        // 标记正在进行点击导航，禁用滚动导航检测
+        window.isClickNavigating = true;
+        
+        // 立即清除所有导航项的选中状态
         document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
         el.classList.add('active');
+        
+        // 如果是"我的收藏"，切换到收藏视图
+        if (view === 'fav') {
+            document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+            const targetView = document.getElementById('view-' + view);
+            if(targetView) {
+                targetView.classList.add('active');
+            }
+            renderFav();
+            // 恢复滚动导航检测
+            setTimeout(() => {
+                window.isClickNavigating = false;
+            }, 1000);
+            return;
+        }
+        
+        // 如果是分类导航，在首页视图中滚动到对应的位置
+        if (view.startsWith('cat_')) {
+            // 切换到首页视图
+            document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+            const viewAll = document.getElementById('view-all');
+            if (viewAll) {
+                viewAll.classList.add('active');
+            }
+            
+            // 获取分类ID
+            const categoryId = view.replace('cat_', '');
+            
+            // 更新滚动导航的最后选中状态
+            window.lastActiveCategoryId = categoryId;
+            
+            // 查找分类名称
+            const category = categories.find(cat => cat.id == categoryId);
+            if (category) {
+                // 查找对应的分类标题元素
+                const titleText = category.icon + ' ' + category.name;
+                
+                // 查找所有分类标题，找到匹配的
+                const allTitles = viewAll.querySelectorAll('.section-title');
+                let targetTitle = null;
+                allTitles.forEach(title => {
+                    if (title.textContent.trim() === titleText) {
+                        targetTitle = title;
+                    }
+                });
+                
+                // 如果找到目标标题，滚动到该位置
+                if (targetTitle) {
+                    const mainContent = document.querySelector('.tools-box');
+                    if (mainContent) {
+                        // 计算滚动位置（标题上方留出50px空间）
+                        const titleTop = targetTitle.offsetTop;
+                        mainContent.scrollTo({
+                            top: titleTop - 50,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            }
+            
+            // 恢复滚动导航检测（等待平滑滚动完成）
+            setTimeout(() => {
+                window.isClickNavigating = false;
+            }, 1000);
+            return;
+        }
+        
+        // 默认行为：切换到指定视图
         document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
         const targetView = document.getElementById('view-' + view);
         if(targetView) {
             targetView.classList.add('active');
         }
-        if(view==='fav') renderFav();
+        
+        // 恢复滚动导航检测
+        setTimeout(() => {
+            window.isClickNavigating = false;
+        }, 1000);
     }
 
     function searchTools(q){
@@ -520,24 +771,25 @@
         return div;
     }
 
-    // 统一打开工具
+    // 统一打开工具 - 按工具类型处理
     function openTool(tool) {
         // 工具类型：1=外部链接，2=本站工具，3=本站链接
         const type = tool.type || 1; // 默认为1（外部链接）
         
         switch(type) {
             case 1:
+            case '1':
                 // 类型1：外部链接工具，跳转到中间页
                 window.location.href = '/tool?id=' + tool.id;
                 break;
                 
             case 2:
+            case '2':
                 // 类型2：本站工具，在本站打开
                 // 更新页面 SEO 标签
                 updateSEOTags(tool);
                 
-                // 切换到工具详情视图
-                document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+                // 切换到工具详情视图（保持导航栏选中状态）
                 document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
                 document.getElementById('view-tool').classList.add('active');
                 
@@ -546,6 +798,7 @@
                 break;
                 
             case 3:
+            case '3':
                 // 类型3：本站链接，直接打开指定URL
                 if (tool.url && tool.url.trim() !== '') {
                     window.location.href = '/' + tool.url;
@@ -613,6 +866,9 @@
     function renderToolPage(tool) {
         const toolPage = document.getElementById('toolPage');
         const isFav = favorites.has(tool.id);
+        
+        // 保存当前工具信息用于返回（转换为字符串类型以确保匹配）
+        window.currentToolCategoryId = String(tool.category_id);
         
         let toolContent = '';
         const toolName = tool.name.replace(/\s/g, ''); // 去除所有空格，兼容数据库名称
@@ -860,18 +1116,40 @@
                             <div style="margin-bottom:12px;">
                                 <label>常用表达式：</label>
                                 <div class="regex-presets" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
-                                    <button onclick="setRegexPreset('phone')" class="btn-preset">手机号</button>
-                                    <button onclick="setRegexPreset('email')" class="btn-preset">邮箱</button>
-                                    <button onclick="setRegexPreset('idcard')" class="btn-preset">身份证</button>
-                                    <button onclick="setRegexPreset('url')" class="btn-preset">URL</button>
-                                    <button onclick="setRegexPreset('ip')" class="btn-preset">IP地址</button>
-                                    <button onclick="setRegexPreset('date')" class="btn-preset">日期</button>
-                                    <button onclick="setRegexPreset('chinese')" class="btn-preset">中文字符</button>
-                                    <button onclick="setRegexPreset('number')" class="btn-preset">数字</button>
-                                    <button onclick="setRegexPreset('qq')" class="btn-preset">QQ号</button>
-                                    <button onclick="setRegexPreset('postcode')" class="btn-preset">邮编</button>
+                                    <button onclick="setRegexPreset('phone')" class="btn-preset" data-preset="phone">手机号</button>
+                                    <button onclick="setRegexPreset('email')" class="btn-preset" data-preset="email">邮箱</button>
+                                    <button onclick="setRegexPreset('idcard')" class="btn-preset" data-preset="idcard">身份证</button>
+                                    <button onclick="setRegexPreset('url')" class="btn-preset" data-preset="url">URL</button>
+                                    <button onclick="setRegexPreset('ip')" class="btn-preset" data-preset="ip">IP地址</button>
+                                    <button onclick="setRegexPreset('date')" class="btn-preset" data-preset="date">日期</button>
+                                    <button onclick="setRegexPreset('chinese')" class="btn-preset" data-preset="chinese">中文字符</button>
+                                    <button onclick="setRegexPreset('number')" class="btn-preset" data-preset="number">数字</button>
+                                    <button onclick="setRegexPreset('qq')" class="btn-preset" data-preset="qq">QQ号</button>
+                                    <button onclick="setRegexPreset('postcode')" class="btn-preset" data-preset="postcode">邮编</button>
                                 </div>
                             </div>
+                            <style>
+                                .btn-preset {
+                                    padding: 6px 14px;
+                                    border: 1px solid var(--border);
+                                    border-radius: 8px;
+                                    background: rgba(255, 255, 255, 0.05);
+                                    color: var(--text-dim);
+                                    font-size: 13px;
+                                    cursor: pointer;
+                                    transition: all 0.25s;
+                                }
+                                .btn-preset:hover {
+                                    background: rgba(255, 255, 255, 0.1);
+                                    color: var(--text);
+                                }
+                                .btn-preset.active {
+                                    background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+                                    border-color: rgba(99, 102, 241, 0.5);
+                                    color: #a5b4fc;
+                                    box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+                                }
+                            </style>
                             <div style="margin-bottom:16px;">
                                 <label>正则表达式：</label>
                                 <input type="text" id="regex-pattern" placeholder="输入正则表达式，如: /abc/g" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
@@ -1635,6 +1913,19 @@
             </div>
         `;
         
+        // 禁用滚动导航监听（避免工具页面触发滚动导航）
+        window.scrollNavDisabled = true;
+        
+        // 在DOM更新后滚动到顶部
+        setTimeout(() => {
+            // 滚动工具容器到顶部
+            const toolsBox = document.querySelector('.tools-box');
+            if (toolsBox) {
+                toolsBox.scrollTop = 0;
+            }
+            window.scrollTo(0, 0);
+        }, 10);
+        
         // 初始化工具
         setTimeout(() => {
             if (tool.name === '时间戳转换') {
@@ -1644,13 +1935,51 @@
             if (tool.name === '颜色转换') {
                 updateColorFromPicker();
             }
-        }, 0);
+        }, 100);
     }
     
     function goBack() {
+        // 重置 SEO 标签为首页
+        resetSEOTags();
+        
+        // 重新启用滚动导航
+        window.scrollNavDisabled = false;
+        
         document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+        
+        // 获取当前工具的分类ID
+        const categoryId = window.currentToolCategoryId;
+        
+        console.log('goBack - categoryId:', categoryId);
+        
+        // 返回首页布局（显示所有分类的工具）
         document.getElementById('view-all').classList.add('active');
-        document.querySelector('.nav-item').classList.add('active');
+        
+        // 如果有分类信息，激活对应的导航项并滚动到对应位置
+        if (categoryId && categoryId > 0 && categoryId !== 'undefined' && categoryId !== 'null') {
+            const targetNav = document.querySelector('.nav-item[data-category-id="' + categoryId + '"]');
+            console.log('goBack - targetNav:', targetNav);
+            
+            if (targetNav) {
+                targetNav.classList.add('active');
+            }
+            
+            // 滚动到对应分类区域（包含标题），居中显示确保标题可见
+            const categorySection = document.getElementById('cat-section_' + categoryId);
+            if (categorySection) {
+                categorySection.scrollIntoView({ behavior: 'auto', block: 'center' });
+            }
+        } else {
+            // 默认激活第一个导航项
+            document.querySelector('.nav-item').classList.add('active');
+            
+            // 滚动到页面顶部
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        }
+        
+        // 清除保存的分类信息
+        window.currentToolCategoryId = null;
     }
     
     function togglePageFav(id, btn) {
@@ -1897,6 +2226,12 @@
         if (preset) {
             document.getElementById('regex-pattern').value = preset.pattern;
             document.getElementById('regex-text').value = preset.text;
+            
+            // 移除所有按钮的高亮状态
+            document.querySelectorAll('.btn-preset').forEach(btn => btn.classList.remove('active'));
+            // 添加当前按钮的高亮状态
+            document.querySelector(`.btn-preset[data-preset="${type}"]`)?.classList.add('active');
+            
             testRegex();
         }
     }
@@ -1923,6 +2258,8 @@
         document.getElementById('regex-pattern').value = '';
         document.getElementById('regex-text').value = '';
         document.getElementById('regex-result').value = '';
+        // 清空时移除所有按钮的高亮状态
+        document.querySelectorAll('.btn-preset').forEach(btn => btn.classList.remove('active'));
     }
     
     // SQL 格式化（简化版）
@@ -3688,6 +4025,20 @@
 
     applyProfile();
     renderAll();
+    
+    // 检查是否有需要选中的分类（从外部工具页面返回）
+    setTimeout(() => {
+        const lastCategoryId = localStorage.getItem('lastToolCategoryId');
+        if (lastCategoryId) {
+            // 选中对应导航项
+            const targetNav = document.querySelector('.nav-item[data-category-id="' + lastCategoryId + '"]');
+            if (targetNav) {
+                targetNav.click();
+            }
+            // 清除记录
+            localStorage.removeItem('lastToolCategoryId');
+        }
+    }, 600);
 
     /* ══ 管理后台功能 ══ */
     // 当前编辑的工具/分类ID

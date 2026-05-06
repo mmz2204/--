@@ -63,3 +63,15 @@ func GetAdminByID(db *gorm.DB, id uint) (*Admin, error) {
 func UpdateAdmin(db *gorm.DB, admin *Admin) error {
 	return db.Save(admin).Error
 }
+
+// GetAllAdmins 获取所有管理员
+func GetAllAdmins(db *gorm.DB) ([]Admin, error) {
+	var admins []Admin
+	err := db.Order("id ASC").Find(&admins).Error
+	return admins, err
+}
+
+// DeleteAdmin 删除管理员
+func DeleteAdmin(db *gorm.DB, id uint) error {
+	return db.Delete(&Admin{}, id).Error
+}

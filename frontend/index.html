@@ -427,5 +427,38 @@
     </div>
 
 <script src="js/main.js"></script>
+<script>
+    // 页面加载时立即处理锚点，不需要等待数据加载
+    document.addEventListener('DOMContentLoaded', function() {
+        const hash = window.location.hash;
+        if (hash.startsWith('#cat-section_')) {
+            const categoryId = hash.replace('#cat-section_', '');
+            if (categoryId && categoryId > 0) {
+                // 立即尝试滚动到对应位置
+                const tryScroll = () => {
+                    const categorySection = document.getElementById('cat-section_' + categoryId);
+                    if (categorySection) {
+                        // 激活对应的导航项
+                        const targetNav = document.querySelector('.nav-item[data-category-id="' + categoryId + '"]');
+                        if (targetNav) {
+                            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                            targetNav.classList.add('active');
+                        }
+                        // 使用原生滚动，更快
+                        const rect = categorySection.getBoundingClientRect();
+                        window.scrollTo({
+                            top: window.scrollY + rect.top - 100,
+                            behavior: 'auto'
+                        });
+                    } else {
+                        // 如果元素还没加载，延迟重试（最多5次）
+                        setTimeout(tryScroll, 50);
+                    }
+                };
+                tryScroll();
+            }
+        }
+    });
+</script>
 </body>
 </html>

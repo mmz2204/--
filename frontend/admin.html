@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -484,10 +484,11 @@
             
             <!-- 标签页 -->
             <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('tools')">🛠️ 工具管理</button>
-                <button class="tab-btn" onclick="switchTab('categories')">📁 分类管理</button>
-                <button class="tab-btn" onclick="switchTab('data')">📊 数据管理</button>
-                <button class="tab-btn" onclick="switchTab('feedbacks')">📧 邮件反馈</button>
+                <button class="tab-btn active" onclick="switchTab('tools', this)">🛠️ 工具管理</button>
+                <button class="tab-btn" onclick="switchTab('categories', this)">📁 分类管理</button>
+                <button class="tab-btn" onclick="switchTab('data', this)">📊 数据管理</button>
+                <button class="tab-btn" onclick="switchTab('feedbacks', this)">📧 邮件反馈</button>
+                <button class="tab-btn" onclick="switchTab('users', this)">👥 用户管理</button>
             </div>
             
             <!-- 工具管理 -->
@@ -596,6 +597,26 @@
                     </tbody>
                 </table>
             </div>
+            
+            <!-- 用户管理 -->
+            <div id="usersTab" class="tab-content">
+                <table class="data-table" id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户名</th>
+                            <th>邮箱</th>
+                            <th>管理员</th>
+                            <th>状态</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr><td colspan="7" style="text-align: center; color: #999;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     
@@ -683,6 +704,24 @@
         </div>
     </div>
     
+    <!-- 重置密码模态框 -->
+    <div id="resetPasswordModal" class="modal-overlay" style="display: none;" onclick="hideResetPasswordModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title">🔑 重置密码</span>
+                <button class="modal-close" onclick="hideResetPasswordModal()">×</button>
+            </div>
+            <div class="form-group">
+                <label>新密码 *</label>
+                <input type="password" id="newPassword" class="form-input" placeholder="请输入新密码">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideResetPasswordModal()">取消</button>
+                <button class="btn btn-primary" onclick="resetPassword()">确认</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- 消息提示 -->
     <div id="message" class="message" style="display: none;"></div>
     
@@ -691,6 +730,7 @@
         let categoriesList = [];
         let currentEditToolId = null;
         let currentEditCategoryId = null;
+        let currentResetPasswordUserId = null;
         
         // 页面加载时检查登录状态
         document.addEventListener('DOMContentLoaded', async () => {
@@ -783,15 +823,23 @@
         }
         
         // 切换标签页
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        function switchTab(tabName, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
-            event.target.classList.add('active');
+            if (btn) {
+                btn.classList.add('active');
+            } else if (event && event.target) {
+                event.target.classList.add('active');
+            }
+            
             document.getElementById(tabName + 'Tab').classList.add('active');
             
             if (tabName === 'feedbacks') {
                 loadFeedbacks();
+            }
+            if (tabName === 'users') {
+                loadUsers();
             }
         }
         
@@ -1272,6 +1320,129 @@
                     loadFeedbacks();
                 } else {
                     showMessage('删除失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+        
+        // ── 用户管理 ──
+        
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/admins', {
+                    method: 'GET',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                if (result.data) {
+                    renderUsersTable(result.data);
+                }
+            } catch (error) {
+                console.error('加载用户列表失败:', error);
+            }
+        }
+        
+        function renderUsersTable(users) {
+            const tbody = document.getElementById('usersTableBody');
+            
+            if (!users || users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">暂无用户</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td>${u.id}</td>
+                    <td>${u.username}</td>
+                    <td>${u.email || '-'}</td>
+                    <td>${u.is_admin ? '✅' : '-'}</td>
+                    <td>${u.status === 1 ? '正常' : '禁用'}</td>
+                    <td>${new Date(u.created_at).toLocaleString('zh-CN')}</td>
+                    <td>
+                        <button class="action-btn edit" onclick="showResetPasswordModal(${u.id})">重置密码</button>
+                        <button class="action-btn ${u.status === 1 ? '' : 'edit'}" onclick="toggleUserStatus(${u.id}, ${u.status === 1 ? 0 : 1})">
+                            ${u.status === 1 ? '禁用' : '启用'}
+                        </button>
+                        <button class="action-btn delete" onclick="deleteUser(${u.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function showResetPasswordModal(id) {
+            currentResetPasswordUserId = id;
+            document.getElementById('newPassword').value = '';
+            document.getElementById('resetPasswordModal').style.display = 'flex';
+        }
+        
+        function hideResetPasswordModal() {
+            document.getElementById('resetPasswordModal').style.display = 'none';
+            currentResetPasswordUserId = null;
+        }
+        
+        async function resetPassword() {
+            const newPassword = document.getElementById('newPassword').value;
+            if (!newPassword) {
+                showMessage('请输入新密码', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/admins/' + currentResetPasswordUserId + '/password', {
+                    method: 'PUT',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_password: newPassword })
+                });
+                
+                if (response.ok) {
+                    showMessage('密码重置成功', 'success');
+                    hideResetPasswordModal();
+                    loadUsers();
+                } else {
+                    const result = await response.json();
+                    showMessage(result.error || '重置失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+        
+        async function toggleUserStatus(id, status) {
+            try {
+                const response = await fetch('/api/admin/admins/' + id + '/status', {
+                    method: 'PUT',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: status })
+                });
+                
+                if (response.ok) {
+                    showMessage('状态更新成功', 'success');
+                    loadUsers();
+                } else {
+                    const result = await response.json();
+                    showMessage(result.error || '更新失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+        
+        async function deleteUser(id) {
+            if (!confirm('确定要删除这个用户吗？')) return;
+            
+            try {
+                const response = await fetch('/api/admin/admins/' + id, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (response.ok) {
+                    showMessage('删除成功', 'success');
+                    loadUsers();
+                } else {
+                    const result = await response.json();
+                    showMessage(result.error || '删除失败', 'error');
                 }
             } catch (error) {
                 showMessage('网络错误', 'error');

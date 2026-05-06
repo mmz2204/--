@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"tools.jinbox.cn/config"
@@ -57,7 +59,7 @@ func GenerateStaticData(c *gin.Context) {
 
 	// 写入BOM以确保Windows正确识别UTF-8编码
 	file.WriteString("\xef\xbb\xbf")
-	
+
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(data); err != nil {
@@ -175,4 +177,101 @@ func ReloadDataFromCSV() error {
 
 	fmt.Println("CSV数据重新加载并生成静态文件成功:", dataFile)
 	return nil
+}
+
+// GenerateSitemap 生成站点地图
+func GenerateSitemap(c *gin.Context) {
+	tools, err := model.GetAllTools(config.DB)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "获取工具数据失败"})
+		return
+	}
+
+	categories, err := model.GetAllCategories(config.DB)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "获取分类数据失败"})
+		return
+	}
+
+	baseURL := "https://tools.jinbox.cn"
+	now := time.Now().Format("2006-01-02")
+
+	var sitemap strings.Builder
+	sitemap.WriteString(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+`)
+
+	// 首页
+	sitemap.WriteString(fmt.Sprintf(`  <url>
+    <loc>%s/</loc>
+    <lastmod>%s</lastmod>
+    <priority>1.0</priority>
+  </url>
+`, baseURL, now))
+
+	// 分类页
+	for _, cat := range categories {
+		sitemap.WriteString(fmt.Sprintf(`  <url>
+    <loc>%s/category/%d</loc>
+    <lastmod>%s</lastmod>
+    <priority>0.8</priority>
+  </url>
+`, baseURL, cat.ID, now))
+	}
+
+	// 工具详情页
+	for _, tool := range tools {
+		url := fmt.Sprintf("%s/tool/%d", baseURL, tool.ID)
+		sitemap.WriteString(fmt.Sprintf(`  <url>
+    <loc>%s</loc>
+    <lastmod>%s</lastmod>
+    <priority>0.9</priority>
+  </url>
+`, url, now))
+	}
+
+	// JSON工具页面
+	jsonPages := []string{"json", "json/format", "json/parse", "json/compress", "json/view", "json/color", "json/xml", "json/entity", "json/compare", "json/editor", "json/excel", "json/csv"}
+	for _, page := range jsonPages {
+		sitemap.WriteString(fmt.Sprintf(`  <url>
+    <loc>%s/%s</loc>
+    <lastmod>%s</lastmod>
+    <priority>0.85</priority>
+  </url>
+`, baseURL, page, now))
+	}
+
+	sitemap.WriteString("</urlset>")
+
+	// 写入文件
+	sitemapFile := "frontend/sitemap.xml"
+	if err := os.WriteFile(sitemapFile, []byte(sitemap.String()), 0644); err != nil {
+		c.JSON(500, gin.H{"error": "生成sitemap失败"})
+		return
+	}
+
+	c.Header("Content-Type", "application/xml")
+	c.String(200, sitemap.String())
+}
+
+// 生成工具的SEO友好URL
+func generateToolSlug(name string) string {
+	// 移除特殊字符，转换为小写
+	slug := strings.ToLower(name)
+	slug = strings.ReplaceAll(slug, " ", "-")
+	slug = strings.ReplaceAll(slug, "　", "-") // 全角空格
+	slug = strings.ReplaceAll(slug, "_", "-")
+	// 移除其他特殊字符
+	slug = strings.ReplaceAll(slug, "(", "")
+	slug = strings.ReplaceAll(slug, ")", "")
+	slug = strings.ReplaceAll(slug, "[", "")
+	slug = strings.ReplaceAll(slug, "]", "")
+	slug = strings.ReplaceAll(slug, "{", "")
+	slug = strings.ReplaceAll(slug, "}", "")
+	slug = strings.ReplaceAll(slug, "，", "")
+	slug = strings.ReplaceAll(slug, "。", "")
+	slug = strings.ReplaceAll(slug, "、", "")
+	slug = strings.ReplaceAll(slug, "；", "")
+	slug = strings.ReplaceAll(slug, "：", "")
+	return slug
 }

@@ -3,7 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{toolName}} - AI工具盒子</title>
+    <title id="page-title">{{toolName}} - AI工具盒子</title>
+    <meta name="description" id="meta-description" content="AI工具盒子提供优质在线工具，助力高效工作与创作">
+    <meta name="keywords" id="meta-keywords" content="AI工具,在线工具,工具盒子">
+    <!-- Open Graph -->
+    <meta property="og:title" id="og-title" content="AI工具盒子">
+    <meta property="og:description" id="og-description" content="汇聚全网优质AI工具">
+    <meta property="og:url" id="og-url" content="https://tools.jinbox.cn">
+    <meta property="og:type" content="website">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" id="twitter-title" content="AI工具盒子">
+    <meta name="twitter:description" id="twitter-description" content="汇聚全网优质AI工具">
+    <!-- Canonical URL -->
+    <link rel="canonical" id="canonical-url" href="https://tools.jinbox.cn">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -393,8 +406,11 @@
             color: var(--text-secondary);
             line-height: 1.4;
             display: -webkit-box;
+            display: box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
+            box-orient: vertical;
             overflow: hidden;
         }
         
@@ -411,6 +427,34 @@
         .card-badge.foreign {
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
             color: #fff;
+        }
+        
+        .tool-workspace {
+            margin-top: 0;
+            padding: 0;
+            background: transparent;
+            border-radius: 0;
+            border: none;
+        }
+        
+        .workspace-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            margin: 20px 0;
+        }
+        
+        .tool-workspace iframe {
+            width: 100%;
+            height: 500px;
+            border: none;
+            border-radius: 12px;
+            background: #000;
+        }
+        
+        .tool-content-placeholder {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
         }
         
         /* Footer */
@@ -476,9 +520,9 @@
                 <span class="logo-icon">✨</span>
                 <span class="logo-text">AI工具盒子</span>
             </a>
-            <a href="/" class="back-btn">
+            <a href="#" class="back-btn" id="back-btn" onclick="handleBack()">
                 <span>←</span>
-                <span>返回首页</span>
+                <span>返回</span>
             </a>
         </div>
     </header>
@@ -502,6 +546,12 @@
             <p class="tool-desc" id="tool-desc">工具描述将显示在这里，大约100字左右，介绍该工具的主要功能和特点。</p>
             
             <div class="tool-badges" id="tool-badges"></div>
+            
+            <!-- 本站工具操作区域 - 与上方合并为一体 -->
+            <div id="tool-workspace" class="tool-workspace" style="display: none;">
+                <div class="workspace-divider"></div>
+                <div id="tool-content"></div>
+            </div>
         </section>
 
         <!-- 广告预留区域 -->
@@ -598,12 +648,78 @@
             }
         }
 
+        // 设置SEO标签
+        function setSeoTags(tool) {
+            const description = tool.detailed_description || tool.description || tool.desc || '';
+            const keywords = [tool.name, '在线工具', 'AI工具', '工具盒子'];
+            
+            // 设置页面标题
+            const pageTitle = tool.name + ' - AI工具盒子';
+            document.title = pageTitle;
+            document.getElementById('page-title').textContent = pageTitle;
+            
+            // 设置描述
+            document.getElementById('meta-description').content = description || 'AI工具盒子提供优质在线工具，助力高效工作与创作';
+            
+            // 设置关键词
+            document.getElementById('meta-keywords').content = keywords.join(',');
+            
+            // 设置Open Graph
+            document.getElementById('og-title').content = pageTitle;
+            document.getElementById('og-description').content = description || '汇聚全网优质AI工具';
+            document.getElementById('og-url').content = window.location.href;
+            
+            // 设置Twitter Card
+            document.getElementById('twitter-title').content = pageTitle;
+            document.getElementById('twitter-description').content = description || '汇聚全网优质AI工具';
+            
+            // 设置Canonical URL
+            document.getElementById('canonical-url').href = window.location.href;
+            
+            // 添加结构化数据（Schema.org）
+            addSchemaMarkup(tool);
+        }
+        
+        // 添加Schema.org结构化数据
+        function addSchemaMarkup(tool) {
+            const schema = {
+                "@context": "https://schema.org",
+                "@type": "WebApplication",
+                "name": tool.name,
+                "description": tool.detailed_description || tool.description || tool.desc || '',
+                "url": window.location.href,
+                "applicationCategory": "ProductivityApplication"
+            };
+            
+            // 移除已存在的schema script
+            const existingSchema = document.getElementById('schema-script');
+            if (existingSchema) {
+                existingSchema.remove();
+            }
+            
+            // 创建新的schema script
+            const script = document.createElement('script');
+            script.id = 'schema-script';
+            script.type = 'application/ld+json';
+            script.textContent = JSON.stringify(schema);
+            document.head.appendChild(script);
+        }
+
         // 渲染页面
         async function renderPage() {
             const toolsData = await loadToolsData();
             
-            // 获取当前工具ID
-            const toolId = getParam('id');
+            // 获取当前工具ID（支持多种URL格式）
+            const urlParams = new URLSearchParams(window.location.search);
+            let toolId = urlParams.get('id');
+            
+            if (!toolId) {
+                // 尝试从URL路径获取ID（支持 /tool/{id} 和 /tool/{id}/{slug}）
+                const pathParts = window.location.pathname.split('/');
+                if (pathParts.length >= 3 && pathParts[1] === 'tool') {
+                    toolId = pathParts[2];
+                }
+            }
             
             if (!toolId) {
                 window.location.href = '/';
@@ -618,11 +734,16 @@
                 return;
             }
             
+            // 设置SEO标签
+            setSeoTags(currentTool);
+            
             // 记录浏览历史
             recordToolVisit(currentTool);
             
-            // 设置页面标题
-            document.title = currentTool.name + ' - AI工具盒子';
+            // 保存当前工具的分类信息，用于返回时选中对应导航
+            if (currentTool.category_id) {
+                localStorage.setItem('lastToolCategoryId', String(currentTool.category_id));
+            }
             
             // 渲染当前工具信息
             document.getElementById('tool-icon').textContent = currentTool.icon || '🤖';
@@ -630,7 +751,34 @@
             // 优先显示详细描述，如果没有则显示简单描述
             const description = currentTool.detailed_description || currentTool.description || currentTool.desc || '暂无描述';
             document.getElementById('tool-desc').textContent = description;
-            document.getElementById('action-btn').href = currentTool.url || '#';
+            
+            // 根据工具类型设置操作按钮
+            const actionBtn = document.getElementById('action-btn');
+            const toolWorkspace = document.getElementById('tool-workspace');
+            const toolContent = document.getElementById('tool-content');
+            
+            if (currentTool.type === 1 || currentTool.type === '1') {
+                // 外部链接工具 - 跳转到外部URL
+                actionBtn.href = currentTool.url || '#';
+                actionBtn.innerHTML = '<span>🚀</span><span>使用入口</span>';
+                actionBtn.target = '_blank';
+                actionBtn.rel = 'noopener noreferrer';
+                toolWorkspace.style.display = 'none';
+            } else if (currentTool.type === 3 || currentTool.type === '3') {
+                // 本站链接工具 - 跳转到本站其他页面
+                actionBtn.href = currentTool.url ? ('/' + currentTool.url) : '#';
+                actionBtn.innerHTML = '<span>🔗</span><span>访问页面</span>';
+                actionBtn.target = '_self';
+                actionBtn.rel = '';
+                toolWorkspace.style.display = 'none';
+            } else {
+                // 本站工具 - 在页面内显示工具操作区域
+                actionBtn.style.display = 'none';
+                toolWorkspace.style.display = 'block';
+                
+                // 根据工具ID加载对应的工具内容
+                loadToolContent(currentTool.id, toolContent);
+            }
             
             // 渲染标签
             const badgesContainer = document.getElementById('tool-badges');
@@ -644,36 +792,255 @@
                 badges.push('<span class="badge foreign">国外</span>');
             }
             
+            if (currentTool.type === 2 || currentTool.type === '2') {
+                badges.push('<span class="badge domestic">本站工具</span>');
+            }
+            
             badgesContainer.innerHTML = badges.join('');
             
-            // 获取相关工具（同分类的外部链接工具），最多显示5个
+            // 获取相关工具（同分类的工具），最多显示5个
             const relatedTools = toolsData.filter(t => 
                 t.category_id === currentTool.category_id && 
                 t.id != toolId && 
-                t.url &&
-                t.url !== '#' && 
-                t.url.trim() !== ''
+                (t.url && t.url !== '#' && t.url.trim() !== '' || t.type === 2)
             ).slice(0, 5);
             
             // 渲染相关工具
             const relatedContainer = document.getElementById('related-tools');
             
             if (relatedTools.length > 0) {
-                relatedContainer.innerHTML = relatedTools.map(tool => `
-                    <div class="tool-card" onclick="goToTool(${tool.id})">
-                        ${tool.is_foreign || tool.foreign ? '<span class="card-badge foreign">国外</span>' : ''}
-                        <div class="card-icon">${tool.icon || '🔧'}</div>
-                        <span class="card-name">${tool.name}</span>
-                        <p class="card-desc">${tool.description || tool.desc || ''}</p>
-                    </div>
-                `).join('');
+                relatedContainer.innerHTML = relatedTools.map(tool => {
+                    const slug = generateSlug(tool.name);
+                    const toolUrl = `/tool/${tool.id}/${slug}`;
+                    return `
+                        <div class="tool-card" onclick="goToTool(${tool.id}, '${slug}')">
+                            ${tool.is_foreign || tool.foreign ? '<span class="card-badge foreign">国外</span>' : ''}
+                            ${tool.type === 2 || tool.type === '2' ? '<span class="card-badge domestic">本站</span>' : ''}
+                            <div class="card-icon">${tool.icon || '🔧'}</div>
+                            <span class="card-name">${tool.name}</span>
+                            <p class="card-desc">${tool.description || tool.desc || ''}</p>
+                        </div>
+                    `;
+                }).join('');
             } else {
                 relatedContainer.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">暂无相关工具推荐</p>';
             }
         }
 
-        function goToTool(id) {
-            window.location.href = `/tool?id=${id}`;
+        // 加载本站工具内容
+        async function loadToolContent(toolId, container) {
+            // 根据工具ID加载对应的工具功能
+            const toolContentMap = {
+                // JSON格式化工具
+                667: () => loadJsonFormatter(container),
+                // Base64编码解码工具
+                668: () => loadBase64Tool(container),
+                // 时间戳转换工具
+                // ... 其他工具
+            };
+            
+            const loader = toolContentMap[toolId];
+            if (loader) {
+                loader();
+            } else {
+                container.innerHTML = '<div class="tool-content-placeholder">该工具功能正在开发中...</div>';
+            }
+        }
+        
+        // JSON格式化工具
+        function loadJsonFormatter(container) {
+            container.innerHTML = `
+                <style>
+                    .json-formatter { display: flex; gap: 16px; }
+                    .json-panel { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+                    .json-panel textarea {
+                        width: 100%;
+                        height: 300px;
+                        padding: 14px;
+                        background: rgba(0, 0, 0, 0.3);
+                        border: 1px solid var(--border);
+                        border-radius: 12px;
+                        color: var(--text);
+                        font-family: monospace;
+                        font-size: 13px;
+                        resize: vertical;
+                    }
+                    .json-panel textarea:focus { outline: none; border-color: var(--primary); }
+                    .json-panel label { font-size: 13px; color: var(--text-secondary); }
+                    .json-actions { display: flex; gap: 10px; margin-top: 8px; }
+                    .json-btn {
+                        padding: 8px 16px;
+                        background: var(--primary);
+                        color: #fff;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 13px;
+                        transition: all 0.3s;
+                    }
+                    .json-btn:hover { transform: translateY(-1px); }
+                    .json-btn.secondary { background: rgba(255, 255, 255, 0.1); }
+                </style>
+                <div class="json-formatter">
+                    <div class="json-panel">
+                        <label>输入JSON</label>
+                        <textarea id="json-input" placeholder="请输入JSON数据..."></textarea>
+                        <div class="json-actions">
+                            <button class="json-btn" onclick="formatJson()">格式化</button>
+                            <button class="json-btn secondary" onclick="minifyJson()">压缩</button>
+                        </div>
+                    </div>
+                    <div class="json-panel">
+                        <label>输出结果</label>
+                        <textarea id="json-output" readonly placeholder="结果将显示在这里..."></textarea>
+                        <div class="json-actions">
+                            <button class="json-btn secondary" onclick="copyJson()">复制结果</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function formatJson() {
+            const input = document.getElementById('json-input').value;
+            try {
+                const parsed = JSON.parse(input);
+                document.getElementById('json-output').value = JSON.stringify(parsed, null, 4);
+            } catch (e) {
+                alert('JSON格式错误: ' + e.message);
+            }
+        }
+        
+        function minifyJson() {
+            const input = document.getElementById('json-input').value;
+            try {
+                const parsed = JSON.parse(input);
+                document.getElementById('json-output').value = JSON.stringify(parsed);
+            } catch (e) {
+                alert('JSON格式错误: ' + e.message);
+            }
+        }
+        
+        function copyJson() {
+            const output = document.getElementById('json-output');
+            output.select();
+            document.execCommand('copy');
+            alert('已复制到剪贴板');
+        }
+        
+        // Base64编码解码工具
+        function loadBase64Tool(container) {
+            container.innerHTML = `
+                <style>
+                    .base64-tool { display: flex; gap: 16px; }
+                    .base64-panel { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+                    .base64-panel textarea {
+                        width: 100%;
+                        height: 300px;
+                        padding: 14px;
+                        background: rgba(0, 0, 0, 0.3);
+                        border: 1px solid var(--border);
+                        border-radius: 12px;
+                        color: var(--text);
+                        font-family: monospace;
+                        font-size: 13px;
+                        resize: vertical;
+                    }
+                    .base64-panel textarea:focus { outline: none; border-color: var(--primary); }
+                    .base64-panel label { font-size: 13px; color: var(--text-secondary); }
+                    .base64-actions { display: flex; gap: 10px; margin-top: 8px; }
+                    .base64-btn {
+                        padding: 8px 16px;
+                        background: var(--primary);
+                        color: #fff;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 13px;
+                        transition: all 0.3s;
+                    }
+                    .base64-btn:hover { transform: translateY(-1px); }
+                    .base64-btn.secondary { background: rgba(255, 255, 255, 0.1); }
+                </style>
+                <div class="base64-tool">
+                    <div class="base64-panel">
+                        <label>输入文本</label>
+                        <textarea id="base64-input" placeholder="请输入要编码/解码的文本..."></textarea>
+                        <div class="base64-actions">
+                            <button class="base64-btn" onclick="encodeBase64()">编码</button>
+                            <button class="base64-btn secondary" onclick="decodeBase64()">解码</button>
+                        </div>
+                    </div>
+                    <div class="base64-panel">
+                        <label>输出结果</label>
+                        <textarea id="base64-output" readonly placeholder="结果将显示在这里..."></textarea>
+                        <div class="base64-actions">
+                            <button class="base64-btn secondary" onclick="copyBase64()">复制结果</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function encodeBase64() {
+            const input = document.getElementById('base64-input').value;
+            const encoded = btoa(encodeURIComponent(input));
+            document.getElementById('base64-output').value = encoded;
+        }
+        
+        function decodeBase64() {
+            const input = document.getElementById('base64-input').value;
+            try {
+                const decoded = decodeURIComponent(atob(input));
+                document.getElementById('base64-output').value = decoded;
+            } catch (e) {
+                alert('Base64格式错误');
+            }
+        }
+        
+        function copyBase64() {
+            const output = document.getElementById('base64-output');
+            output.select();
+            document.execCommand('copy');
+            alert('已复制到剪贴板');
+        }
+        
+        // 返回首页并定位到对应分类
+        function handleBack() {
+            const categoryId = localStorage.getItem('lastToolCategoryId');
+            if (categoryId) {
+                window.location.href = `/#cat-section_${categoryId}`;
+            } else {
+                window.location.href = '/';
+            }
+        }
+
+        // 生成URL友好的slug
+        function generateSlug(name) {
+            if (!name) return '';
+            return name
+                .toLowerCase()
+                .replace(/[\u4e00-\u9fa5]/g, (char) => {
+                    const pinyinMap = {
+                        '的': 'de', '是': 'shi', '在': 'zai', '有': 'you', '和': 'he', '了': 'le',
+                        '我': 'wo', '不': 'bu', '人': 'ren', '都': 'dou', '一': 'yi', '一个': 'yi-ge',
+                        '上': 'shang', '也': 'ye', '很': 'hen', '到': 'dao', '说': 'shuo', '要': 'yao',
+                        '去': 'qu', '你': 'ni', '会': 'hui', '着': 'zhe', '没有': 'mei-you', '看': 'kan',
+                        '好': 'hao', '自己': 'zi-ji', '这': 'zhe', '那': 'na', '能': 'neng', '可能': 'ke-neng',
+                        'JSON': 'json', 'AI': 'ai', 'GPT': 'gpt', 'URL': 'url', 'Base64': 'base64',
+                        'PDF': 'pdf', 'Word': 'word', 'Excel': 'excel', 'HTML': 'html', 'CSS': 'css',
+                        'XML': 'xml', 'API': 'api', 'HTTP': 'http', 'HTTPS': 'https', 'FTP': 'ftp'
+                    };
+                    return pinyinMap[name] || char;
+                })
+                .replace(/[^a-z0-9\u4e00-\u9fa5-]+/g, '-')
+                .replace(/-{2,}/g, '-')
+                .replace(/^-|-$/g, '');
+        }
+
+        function goToTool(id, slug) {
+            const toolSlug = slug || generateSlug('');
+            window.location.href = `/tool/${id}/${toolSlug}`;
         }
 
         // 页面加载完成后渲染
