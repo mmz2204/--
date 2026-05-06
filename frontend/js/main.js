@@ -769,6 +769,136 @@
         return div;
     }
 
+    // ========== MD5 加密相关函数 ==========
+    
+    // MD5 加密 - 仅计算字符串
+    function calculateStringMd5() {
+        const input = document.getElementById('md5-input').value;
+        const output = document.getElementById('md5-string-output');
+        
+        if (input) {
+            output.value = md5(input);
+        } else {
+            output.value = '';
+        }
+    }
+    
+    // 复制字符串 MD5 结果
+    function copyStringMd5() {
+        const output = document.getElementById('md5-string-output');
+        if (output.value) {
+            navigator.clipboard.writeText(output.value).then(() => {
+                alert('已复制到剪贴板');
+            }).catch(() => {
+                alert('复制失败');
+            });
+        }
+    }
+    
+    // 清空字符串 MD5
+    function clearStringMd5() {
+        document.getElementById('md5-input').value = '';
+        document.getElementById('md5-string-output').value = '';
+    }
+    
+    // 标准MD5实现
+    function md5(str) {
+        const bytes = [];
+        for (let i = 0; i < str.length; i++) {
+            bytes.push(str.charCodeAt(i) & 0xff);
+        }
+        return md5Array(bytes);
+    }
+    
+    // 核心MD5算法
+    function md5Array(input) {
+        const s = [
+            7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+            5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
+            4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+            6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
+        ];
+        
+        const K = [];
+        for (let i = 0; i < 64; i++) {
+            K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296);
+            if (K[i] < 0) K[i] += 4294967296;
+        }
+        
+        let a0 = 0x67452301;
+        let b0 = 0xEFCDAB89;
+        let c0 = 0x98BADCFE;
+        let d0 = 0x10325476;
+        
+        const originalLength = input.length;
+        const originalLengthBits = originalLength * 8;
+        
+        const padded = new Uint8Array(((originalLength + 8) >>> 6) << 6);
+        padded.set(input);
+        padded[originalLength] = 0x80;
+        
+        for (let i = 0; i < 8; i++) {
+            padded[padded.length - 8 + i] = (originalLengthBits >>> (8 * i)) & 0xff;
+        }
+        
+        for (let offset = 0; offset < padded.length; offset += 64) {
+            const M = new Uint32Array(16);
+            for (let i = 0; i < 16; i++) {
+                const base = offset + i * 4;
+                M[i] = padded[base] | (padded[base + 1] << 8) | 
+                       (padded[base + 2] << 16) | (padded[base + 3] << 24);
+            }
+            
+            let A = a0, B = b0, C = c0, D = d0;
+            
+            for (let i = 0; i < 64; i++) {
+                let F, g;
+                
+                if (i < 16) {
+                    F = (B & C) | (~B & D);
+                    g = i;
+                } else if (i < 32) {
+                    F = (D & B) | (~D & C);
+                    g = (5 * i + 1) % 16;
+                } else if (i < 48) {
+                    F = B ^ C ^ D;
+                    g = (3 * i + 5) % 16;
+                } else {
+                    F = C ^ (B | ~D);
+                    g = (7 * i) % 16;
+                }
+                
+                const dTemp = D;
+                D = C;
+                C = B;
+                B = (B + leftRotate((A + F + K[i] + M[g]) >>> 0, s[i])) >>> 0;
+                A = dTemp;
+            }
+            
+            a0 = (a0 + A) >>> 0;
+            b0 = (b0 + B) >>> 0;
+            c0 = (c0 + C) >>> 0;
+            d0 = (d0 + D) >>> 0;
+        }
+        
+        return toHexString(a0) + toHexString(b0) + toHexString(c0) + toHexString(d0);
+    }
+    
+    function leftRotate(value, shift) {
+        return ((value << shift) | (value >>> (32 - shift))) >>> 0;
+    }
+    
+    function toHexString(value) {
+        let result = '';
+        for (let i = 0; i < 4; i++) {
+            const byte = (value >>> (8 * i)) & 0xff;
+            result += byte.toString(16).padStart(2, '0');
+        }
+        return result;
+    }
+    
+    // ========== MD5 加密相关函数结束 ==========
+
     // 统一打开工具 - 按工具类型处理
     function openTool(tool) {
         // 工具类型：1=外部链接，2=本站工具，3=本站链接
@@ -924,26 +1054,30 @@
                 break;
             case '时间戳转换':
                 toolContent = `
-                    <div class="json-tool">
-                        <div class="tool-section">
+                    <div class="json-tool" style="display:flex;gap:20px;">
+                        <div class="tool-section" style="flex:1;">
                             <div class="tool-section-title">时间戳转换</div>
                             <div class="timestamp-section" style="margin-bottom:16px;">
                                 <label>时间戳（秒）：</label>
-                                <input type="text" id="timestamp-input" placeholder="1714400000" style="flex:1;">
+                                <input type="text" id="timestamp-input" placeholder="1714400000" style="max-width:300px;">
                                 <button onclick="timestampToDate()" class="btn-primary">→ 转日期</button>
                             </div>
                             <div class="timestamp-section" style="margin-bottom:16px;">
                                 <label>日期时间：</label>
-                                <input type="datetime-local" id="datetime-input" style="flex:1;">
+                                <input type="datetime-local" id="datetime-input" step="1" style="max-width:300px;">
                                 <button onclick="dateToTimestamp()" class="btn-primary">→ 转时间戳</button>
                             </div>
                             <div class="timestamp-section">
                                 <label>当前时间：</label>
-                                <div class="current-time">
+                                <div class="current-time" style="max-width:300px;">
                                     <p id="current-timestamp"></p>
                                     <p id="current-datetime"></p>
                                 </div>
                             </div>
+                        </div>
+                        <div class="tool-section" style="width:300px;flex-shrink:0;">
+                            <div class="tool-section-title">历史记录</div>
+                            <div id="history-list" style="max-height:400px;overflow-y:auto;"></div>
                         </div>
                     </div>
                 `;
@@ -1093,15 +1227,18 @@
                     <div class="json-tool">
                         <div class="tool-section">
                             <div class="tool-section-title">MD5 加密</div>
-                            <div style="margin-bottom:20px;">
-                                <input type="text" id="md5-input" placeholder="输入要加密的字符串" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            
+                            <!-- 字符串 MD5 -->
+                            <div style="padding:16px;border-radius:12px;background:var(--card);border:1px solid var(--border);">
+                                <label style="font-size:14px;color:var(--text-dim);margin-bottom:8px;display:block;">字符串 MD5</label>
+                                <input type="text" id="md5-input" placeholder="输入要加密的字符串" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.2);color:var(--text);box-sizing:border-box;">
+                                <div style="margin-top:12px;display:flex;gap:10px;">
+                                    <button onclick="calculateStringMd5()" style="flex:1;padding:10px 16px;font-size:14px;font-weight:600;border:none;border-radius:8px;background:linear-gradient(135deg, #6366f1, #8b5cf6);color:white;cursor:pointer;">计算 MD5</button>
+                                    <button onclick="copyStringMd5()" style="flex:1;padding:10px 16px;font-size:14px;font-weight:600;border:none;border-radius:8px;background:linear-gradient(135deg, #10b981, #059669);color:white;cursor:pointer;">复制结果</button>
+                                    <button onclick="clearStringMd5()" style="flex:1;padding:10px 16px;font-size:14px;font-weight:600;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-dim);cursor:pointer;">清空</button>
+                                </div>
+                                <textarea id="md5-string-output" placeholder="字符串 MD5 结果" readonly style="width:100%;min-height:80px;margin-top:12px;padding:12px;font-family:monospace;font-size:14px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.2);color:var(--text);box-sizing:border-box;"></textarea>
                             </div>
-                            <div class="tool-buttons" style="margin-bottom:20px;">
-                                <button onclick="md5Encrypt()" class="btn-primary">计算 MD5</button>
-                                <button onclick="copyMd5()" class="btn-secondary">复制</button>
-                                <button onclick="clearMd5()" class="btn-secondary">清空</button>
-                            </div>
-                            <textarea id="md5-output" placeholder="MD5 结果将显示在这里" readonly style="width:100%;min-height:100px;padding:12px;font-family:monospace;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);"></textarea>
                         </div>
                     </div>
                 `;
@@ -1929,10 +2066,12 @@
             if (tool.name === '时间戳转换') {
                 updateCurrentTime();
                 setInterval(updateCurrentTime, 1000);
+                renderHistory();
             }
             if (tool.name === '颜色转换') {
                 updateColorFromPicker();
             }
+
         }, 100);
     }
     
@@ -2096,113 +2235,6 @@
     function clearUrl() {
         document.getElementById('url-input').value = '';
         document.getElementById('url-output').value = '';
-    }
-    
-    // MD5 加密（简化版）
-    function md5Encrypt() {
-        const input = document.getElementById('md5-input').value;
-        if (input) {
-            document.getElementById('md5-output').value = md5(input);
-        }
-    }
-    
-    function md5(str) {
-        const rotateLeft = (n, s) => (n << s) | (n >>> (32 - s));
-        const toHex = (n) => {
-            let hexChars = '0123456789abcdef';
-            let result = '';
-            for (let i = 0; i < 4; i++) {
-                result += hexChars[(n >> (i * 8)) & 0xff];
-            }
-            return result;
-        };
-        
-        const s = [
-            7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
-            5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
-            4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
-            6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
-        ];
-        const K = [];
-        for (let i = 0; i < 64; i++) {
-            K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296);
-        }
-        
-        let a0 = 0x67452301;
-        let b0 = 0xEFCDAB89;
-        let c0 = 0x98BADCFE;
-        let d0 = 0x10325476;
-        
-        const originalLengthBits = str.length * 8;
-        const bytes = [];
-        for (let i = 0; i < str.length; i++) {
-            bytes.push(str.charCodeAt(i) & 0xff);
-        }
-        
-        bytes.push(0x80);
-        while ((bytes.length * 8) % 512 !== 448) {
-            bytes.push(0x00);
-        }
-        
-        for (let i = 0; i < 8; i++) {
-            bytes.push((originalLengthBits >>> (i * 8)) & 0xff);
-        }
-        
-        for (let i = 0; i < bytes.length; i += 64) {
-            const M = [];
-            for (let j = 0; j < 16; j++) {
-                M[j] = bytes[i + j * 4] |
-                        (bytes[i + j * 4 + 1] << 8) |
-                        (bytes[i + j * 4 + 2] << 16) |
-                        (bytes[i + j * 4 + 3] << 24);
-            }
-            
-            let A = a0, B = b0, C = c0, D = d0;
-            
-            for (let j = 0; j < 64; j++) {
-                let F, g;
-                if (j < 16) {
-                    F = (B & C) | (~B & D);
-                    g = j;
-                } else if (j < 32) {
-                    F = (D & B) | (~D & C);
-                    g = (5 * j + 1) % 16;
-                } else if (j < 48) {
-                    F = B ^ C ^ D;
-                    g = (3 * j + 5) % 16;
-                } else {
-                    F = C ^ (B | ~D);
-                    g = (7 * j) % 16;
-                }
-                
-                const dTemp = D;
-                D = C;
-                C = B;
-                B = (B + rotateLeft((A + F + K[j] + M[g]) >>> 0, s[j])) >>> 0;
-                A = dTemp;
-            }
-            
-            a0 = (a0 + A) >>> 0;
-            b0 = (b0 + B) >>> 0;
-            c0 = (c0 + C) >>> 0;
-            d0 = (d0 + D) >>> 0;
-        }
-        
-        return toHex(a0) + toHex(b0) + toHex(c0) + toHex(d0);
-    }
-    
-    function copyMd5() {
-        const output = document.getElementById('md5-output');
-        if (output.value) {
-            output.select();
-            document.execCommand('copy');
-            alert('已复制到剪贴板');
-        }
-    }
-    
-    function clearMd5() {
-        document.getElementById('md5-input').value = '';
-        document.getElementById('md5-output').value = '';
     }
     
     // 正则表达式测试
@@ -3219,7 +3251,9 @@
             const day = String(date.getDate()).padStart(2, '0');
             const hours = String(date.getHours()).padStart(2, '0');
             const minutes = String(date.getMinutes()).padStart(2, '0');
-            document.getElementById('datetime-input').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            document.getElementById('datetime-input').value = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+            addToHistory(ts, `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`);
         }
     }
     
@@ -3227,8 +3261,45 @@
         const dt = document.getElementById('datetime-input').value;
         if (dt) {
             const date = new Date(dt);
-            document.getElementById('timestamp-input').value = Math.floor(date.getTime() / 1000);
+            const timestamp = Math.floor(date.getTime() / 1000);
+            document.getElementById('timestamp-input').value = timestamp;
+            const datetimeStr = dt.replace('T', ' ');
+            addToHistory(timestamp, datetimeStr);
         }
+    }
+    
+    function addToHistory(timestamp, datetime) {
+        let history = JSON.parse(localStorage.getItem('timestampHistory') || '[]');
+        const record = { timestamp, datetime, time: Date.now() };
+        history = history.filter(h => h.timestamp !== timestamp);
+        history.unshift(record);
+        history = history.slice(0, 20);
+        localStorage.setItem('timestampHistory', JSON.stringify(history));
+        renderHistory();
+    }
+    
+    function renderHistory() {
+        const history = JSON.parse(localStorage.getItem('timestampHistory') || '[]');
+        const historyList = document.getElementById('history-list');
+        if (!historyList) return;
+        
+        if (history.length === 0) {
+            historyList.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:20px;">暂无历史记录</p>';
+            return;
+        }
+        
+        historyList.innerHTML = history.map((h) => `
+            <div style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.2s;" 
+                 onclick="loadHistory(${h.timestamp}, '${h.datetime}')">
+                <div style="font-size:13px;color:var(--text-bright);">${h.timestamp}</div>
+                <div style="font-size:11px;color:var(--text-dim);">${h.datetime}</div>
+            </div>
+        `).join('');
+    }
+    
+    function loadHistory(timestamp, datetime) {
+        document.getElementById('timestamp-input').value = timestamp;
+        document.getElementById('datetime-input').value = datetime.replace(' ', 'T');
     }
     
     function updateCurrentTime() {
