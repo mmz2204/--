@@ -1920,22 +1920,24 @@
                                 <label>上传图片：</label>
                                 <input type="file" id="img-crop-upload" accept="image/*" onchange="loadCropImage()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
                             </div>
-                            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-                                <div>
-                                    <label>X: <input type="number" id="crop-x" value="0" min="0" style="width:80px;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);"></label>
-                                </div>
-                                <div>
-                                    <label>Y: <input type="number" id="crop-y" value="0" min="0" style="width:80px;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);"></label>
-                                </div>
-                                <div>
-                                    <label>宽: <input type="number" id="crop-w" value="200" min="1" style="width:80px;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);"></label>
-                                </div>
-                                <div>
-                                    <label>高: <input type="number" id="crop-h" value="200" min="1" style="width:80px;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);"></label>
-                                </div>
+                            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+                                <label style="display:flex;align-items:center;gap:8px;">
+                                    <span>锁定宽高比</span>
+                                    <select id="crop-aspect-select" onchange="onCropAspectChange()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);min-width:160px;">
+                                        <option value="">自由</option>
+                                        <option value="original">原图宽高比</option>
+                                        <option value="1">1 : 1</option>
+                                        <option value="1.3333333333">4 : 3</option>
+                                        <option value="0.75">3 : 4</option>
+                                        <option value="1.7777777778">16 : 9</option>
+                                        <option value="0.5625">9 : 16</option>
+                                    </select>
+                                </label>
+                                <span id="crop-size-hint" style="font-size:13px;color:var(--text-muted, #888);"></span>
                             </div>
+                            <p style="margin:0 0 12px;font-size:13px;color:var(--text-muted, #888);">在预览上拖动选区移动位置，拖动边角或四边调整大小；导出为原图像素尺寸。</p>
                             <div style="margin-bottom:16px;text-align:center;">
-                                <canvas id="crop-canvas" style="max-width:100%;border-radius:8px;border:1px solid var(--border);"></canvas>
+                                <canvas id="crop-canvas" style="max-width:100%;border-radius:8px;border:1px solid var(--border);touch-action:none;cursor:crosshair;"></canvas>
                             </div>
                             <div class="tool-buttons">
                                 <button onclick="applyCrop()" class="btn-primary">裁剪</button>
@@ -5037,53 +5039,331 @@
         return (bytes / 1048576).toFixed(1) + ' MB';
     }
 
-    /* ══ 图片裁剪 ══ */
+    /* ══ 图片裁剪（画布拖拽选区 + 可选宽高比） ══ */
     let cropImage = null;
+    let cropRect = { x: 0, y: 0, w: 100, h: 100 };
+    let cropDragState = null;
+    let cropCanvasCleanup = null;
+    const CROP_MIN = 24;
+    const CROP_HANDLE = 10;
+
+    function cropCanvasPoint(canvas, clientX, clientY) {
+        const r = canvas.getBoundingClientRect();
+        const sx = canvas.width / Math.max(r.width, 1);
+        const sy = canvas.height / Math.max(r.height, 1);
+        return { x: (clientX - r.left) * sx, y: (clientY - r.top) * sy };
+    }
+
+    function cropClampRect(rect, cw, ch) {
+        let { x, y, w, h } = rect;
+        w = Math.max(CROP_MIN, w);
+        h = Math.max(CROP_MIN, h);
+        x = Math.min(Math.max(0, x), cw - w);
+        y = Math.min(Math.max(0, y), ch - h);
+        if (x + w > cw) w = cw - x;
+        if (y + h > ch) h = ch - y;
+        w = Math.max(CROP_MIN, w);
+        h = Math.max(CROP_MIN, h);
+        return { x, y, w, h };
+    }
+
+    function cropFitAspectToRect(w, h, aspect) {
+        if (!aspect || w <= 0 || h <= 0) return { w, h };
+        if (w / h > aspect) return { w: h * aspect, h };
+        return { w, h: w / aspect };
+    }
+
+    function getCropAspectEffective() {
+        const sel = document.getElementById('crop-aspect-select');
+        if (!sel || sel.value === '') return null;
+        if (sel.value === 'original') {
+            if (!cropImage || !cropImage.naturalWidth || !cropImage.naturalHeight) return null;
+            return cropImage.naturalWidth / cropImage.naturalHeight;
+        }
+        const n = parseFloat(sel.value);
+        return isNaN(n) ? null : n;
+    }
+
+    function cropSnapRectToAspect(rect, aspect, cw, ch) {
+        if (!aspect) return cropClampRect(rect, cw, ch);
+        let { x, y, w, h } = rect;
+        const fit = cropFitAspectToRect(w, h, aspect);
+        w = fit.w;
+        h = fit.h;
+        const cx = Math.min(Math.max(x + rect.w / 2, w / 2), cw - w / 2);
+        const cy = Math.min(Math.max(y + rect.h / 2, h / 2), ch - h / 2);
+        x = cx - w / 2;
+        y = cy - h / 2;
+        return cropClampRect({ x, y, w, h }, cw, ch);
+    }
+
+    function cropHitHandle(px, py, r) {
+        const hs = CROP_HANDLE;
+        const { x, y, w, h } = r;
+        const mx = x + w / 2;
+        const my = y + h / 2;
+        const pts = [
+            ['nw', x, y], ['ne', x + w, y], ['se', x + w, y + h], ['sw', x, y + h],
+            ['n', mx, y], ['e', x + w, my], ['s', mx, y + h], ['w', x, my]
+        ];
+        for (let i = 0; i < pts.length; i++) {
+            const [name, hx, hy] = pts[i];
+            if (Math.abs(px - hx) <= hs && Math.abs(py - hy) <= hs) return name;
+        }
+        if (px >= x && px <= x + w && py >= y && py <= y + h) return 'move';
+        return null;
+    }
+
+    function cropResizeFromHandle(handle, startRect, fx, fy, mx, my, aspect, cw, ch) {
+        const sr = startRect;
+        let x = sr.x, y = sr.y, w = sr.w, h = sr.h;
+        const ax = (x1, y1, x2, y2) => {
+            let rw = Math.abs(x2 - x1);
+            let rh = Math.abs(y2 - y1);
+            if (aspect) {
+                if (rw / Math.max(rh, 0.001) > aspect) {
+                    rw = rh * aspect;
+                } else {
+                    rh = rw / aspect;
+                }
+            }
+            const nx = Math.min(x1, x2);
+            const ny = Math.min(y1, y2);
+            return cropClampRect({ x: nx, y: ny, w: rw, h: rh }, cw, ch);
+        };
+        if (handle === 'se') return ax(sr.x, sr.y, mx, my);
+        if (handle === 'nw') return ax(sr.x + sr.w, sr.y + sr.h, mx, my);
+        if (handle === 'ne') return ax(sr.x, sr.y + sr.h, mx, my);
+        if (handle === 'sw') return ax(sr.x + sr.w, sr.y, mx, my);
+        if (handle === 'e') {
+            w = Math.max(CROP_MIN, mx - sr.x);
+            if (aspect) {
+                h = w / aspect;
+                y = sr.y + (sr.h - h) / 2;
+            } else h = sr.h;
+            return cropClampRect({ x: sr.x, y, w, h }, cw, ch);
+        }
+        if (handle === 'w') {
+            const right = sr.x + sr.w;
+            w = Math.max(CROP_MIN, right - mx);
+            if (aspect) {
+                h = w / aspect;
+                y = sr.y + (sr.h - h) / 2;
+            } else h = sr.h;
+            x = right - w;
+            return cropClampRect({ x, y, w, h }, cw, ch);
+        }
+        if (handle === 's') {
+            h = Math.max(CROP_MIN, my - sr.y);
+            if (aspect) {
+                w = h * aspect;
+                x = sr.x + (sr.w - w) / 2;
+            } else w = sr.w;
+            return cropClampRect({ x, y, w, h }, cw, ch);
+        }
+        if (handle === 'n') {
+            const bottom = sr.y + sr.h;
+            h = Math.max(CROP_MIN, bottom - my);
+            if (aspect) {
+                w = h * aspect;
+                x = sr.x + (sr.w - w) / 2;
+            } else w = sr.w;
+            y = bottom - h;
+            return cropClampRect({ x, y, w, h }, cw, ch);
+        }
+        return cropClampRect(sr, cw, ch);
+    }
+
+    function drawCropCanvas() {
+        const canvas = document.getElementById('crop-canvas');
+        const hint = document.getElementById('crop-size-hint');
+        if (!canvas || !cropImage) return;
+        const ctx = canvas.getContext('2d');
+        const cw = canvas.width;
+        const ch = canvas.height;
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.drawImage(cropImage, 0, 0, cw, ch);
+        const { x, y, w, h } = cropRect;
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(0, 0, cw, y);
+        ctx.fillRect(0, y, x, h);
+        ctx.fillRect(x + w, y, cw - x - w, h);
+        ctx.fillRect(0, y + h, cw, ch - y - h);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(x, y, w, h);
+        ctx.setLineDash([]);
+        const hs = 5;
+        const corners = [[x, y], [x + w, y], [x, y + h], [x + w, y + h]];
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+        corners.forEach(([cx, cy]) => {
+            ctx.fillRect(cx - hs, cy - hs, hs * 2, hs * 2);
+            ctx.strokeRect(cx - hs, cy - hs, hs * 2, hs * 2);
+        });
+        const mx = x + w / 2;
+        const my = y + h / 2;
+        [[mx, y], [mx, y + h], [x, my], [x + w, my]].forEach(([cx, cy]) => {
+            ctx.fillRect(cx - hs, cy - hs, hs * 2, hs * 2);
+            ctx.strokeRect(cx - hs, cy - hs, hs * 2, hs * 2);
+        });
+        if (hint && cropImage) {
+            const scale = cropImage.width / cw;
+            const ow = Math.round(w * scale);
+            const oh = Math.round(h * scale);
+            hint.textContent = '导出约 ' + ow + ' × ' + oh + ' 像素';
+        }
+    }
+
+    function cropDetachCanvas() {
+        if (typeof cropCanvasCleanup === 'function') {
+            cropCanvasCleanup();
+            cropCanvasCleanup = null;
+        }
+    }
+
+    function cropAttachCanvas(canvas) {
+        cropDetachCanvas();
+        const onPointerDown = function(e) {
+            if (!cropImage) return;
+            const p = cropCanvasPoint(canvas, e.clientX, e.clientY);
+            const handle = cropHitHandle(p.x, p.y, cropRect);
+            if (!handle) return;
+            e.preventDefault();
+            cropDragState = {
+                handle,
+                startRect: { ...cropRect },
+                startX: p.x,
+                startY: p.y
+            };
+            try {
+                canvas.setPointerCapture(e.pointerId);
+            } catch (err) { /* ignore */ }
+        };
+        const onPointerMove = function(e) {
+            if (!cropDragState || !cropImage) return;
+            e.preventDefault();
+            const p = cropCanvasPoint(canvas, e.clientX, e.clientY);
+            const cw = canvas.width;
+            const ch = canvas.height;
+            const st = cropDragState;
+            if (st.handle === 'move') {
+                const dx = p.x - st.startX;
+                const dy = p.y - st.startY;
+                cropRect = cropClampRect({
+                    x: st.startRect.x + dx,
+                    y: st.startRect.y + dy,
+                    w: st.startRect.w,
+                    h: st.startRect.h
+                }, cw, ch);
+            } else {
+                cropRect = cropResizeFromHandle(
+                    st.handle,
+                    st.startRect,
+                    st.startX,
+                    st.startY,
+                    p.x,
+                    p.y,
+                    getCropAspectEffective(),
+                    cw,
+                    ch
+                );
+            }
+            drawCropCanvas();
+        };
+        const onPointerUp = function(e) {
+            if (cropDragState) {
+                cropDragState = null;
+                try {
+                    canvas.releasePointerCapture(e.pointerId);
+                } catch (err) { /* ignore */ }
+            }
+        };
+        canvas.addEventListener('pointerdown', onPointerDown);
+        canvas.addEventListener('pointermove', onPointerMove);
+        canvas.addEventListener('pointerup', onPointerUp);
+        canvas.addEventListener('pointercancel', onPointerUp);
+        cropCanvasCleanup = function() {
+            canvas.removeEventListener('pointerdown', onPointerDown);
+            canvas.removeEventListener('pointermove', onPointerMove);
+            canvas.removeEventListener('pointerup', onPointerUp);
+            canvas.removeEventListener('pointercancel', onPointerUp);
+        };
+    }
+
+    function onCropAspectChange() {
+        const canvas = document.getElementById('crop-canvas');
+        if (canvas && cropImage) {
+            const ar = getCropAspectEffective();
+            cropRect = cropSnapRectToAspect(cropRect, ar, canvas.width, canvas.height);
+            drawCropCanvas();
+        }
+    }
+
     function loadCropImage() {
         const file = document.getElementById('img-crop-upload').files[0];
         if (!file) return;
+        cropDetachCanvas();
         const reader = new FileReader();
         reader.onload = function(e) {
             const img = new Image();
             img.onload = function() {
                 cropImage = img;
                 const canvas = document.getElementById('crop-canvas');
-                const maxW = Math.min(img.width, 500);
+                const maxW = Math.min(img.width, 560);
                 const scale = maxW / img.width;
                 canvas.width = maxW;
-                canvas.height = img.height * scale;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                document.getElementById('crop-w').value = Math.round(canvas.width / 2);
-                document.getElementById('crop-h').value = Math.round(canvas.height / 2);
+                canvas.height = Math.round(img.height * scale);
+                const m = 0.08;
+                cropRect = {
+                    x: Math.round(canvas.width * m),
+                    y: Math.round(canvas.height * m),
+                    w: Math.round(canvas.width * (1 - 2 * m)),
+                    h: Math.round(canvas.height * (1 - 2 * m))
+                };
+                const ar = getCropAspectEffective();
+                if (ar) {
+                    cropRect = cropSnapRectToAspect(cropRect, ar, canvas.width, canvas.height);
+                } else {
+                    cropRect = cropClampRect(cropRect, canvas.width, canvas.height);
+                }
+                cropAttachCanvas(canvas);
+                drawCropCanvas();
             };
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
     }
+
     function applyCrop() {
         if (!cropImage) { alert('请先上传图片'); return; }
-        const x = parseInt(document.getElementById('crop-x').value) || 0;
-        const y = parseInt(document.getElementById('crop-y').value) || 0;
-        const w = parseInt(document.getElementById('crop-w').value) || 100;
-        const h = parseInt(document.getElementById('crop-h').value) || 100;
         const canvas = document.getElementById('crop-canvas');
         const scale = cropImage.width / canvas.width;
-        const sx = x * scale, sy = y * scale, sw = w * scale, sh = h * scale;
+        const { x, y, w, h } = cropRect;
+        const sx = x * scale;
+        const sy = y * scale;
+        const sw = w * scale;
+        const sh = h * scale;
+        const outW = Math.max(1, Math.round(sw));
+        const outH = Math.max(1, Math.round(sh));
         const resultCanvas = document.createElement('canvas');
-        resultCanvas.width = w; resultCanvas.height = h;
+        resultCanvas.width = outW;
+        resultCanvas.height = outH;
         const ctx = resultCanvas.getContext('2d');
-        ctx.drawImage(cropImage, sx, sy, sw, sh, 0, 0, w, h);
+        ctx.drawImage(cropImage, sx, sy, sw, sh, 0, 0, outW, outH);
         const resultDiv = document.getElementById('crop-result');
         resultDiv.innerHTML = '';
+        const dataUrl = resultCanvas.toDataURL();
         const img = document.createElement('img');
-        img.src = resultCanvas.toDataURL();
+        img.src = dataUrl;
         img.style.maxWidth = '100%';
         img.style.borderRadius = '8px';
         img.style.border = '1px solid var(--border)';
         resultDiv.appendChild(img);
-        resultDiv.dataset.dataUrl = resultCanvas.toDataURL();
+        resultDiv.dataset.dataUrl = dataUrl;
     }
+
     function downloadCropped() {
         const resultDiv = document.getElementById('crop-result');
         const dataUrl = resultDiv.dataset.dataUrl;

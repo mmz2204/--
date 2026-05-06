@@ -1,5 +1,6 @@
 
         :root {
+            color-scheme: dark;
             --primary: #6366f1;
             --primary2: #8b5cf6;
             --accent: #06b6d4;
@@ -16,9 +17,39 @@
             /* 背景色变量 - 统一管理 */
             --bg-gradient: linear-gradient(180deg, #0f1419 0%, #1a1d23 50%, #0f1419 100%);
             --bg-noise-opacity: 0.2;
+            /* 与工具区/弹窗共用别名（原先未定义导致继承异常） */
+            --text-primary: var(--text-main);
+            --text-secondary: var(--text-dim);
+            --text: var(--text-main);
+            --bg-primary: #0f172a;
+            --bg-card: rgba(22, 30, 46, 0.94);
+            --bg-input: rgba(0, 0, 0, 0.25);
+            --bg-hover: rgba(255, 255, 255, 0.08);
+            --card: rgba(30, 41, 59, 0.75);
+            --select-surface: #1e293b;
+            --select-option-text: #e2e8f0;
         }
 
         * { margin:0; padding:0; box-sizing:border-box; }
+
+        /* 全站原生 select：深色面板 + 深色 option，避免系统浅色列表上白字不可读 */
+        select {
+            font: inherit;
+            color: var(--text-main);
+            background-color: var(--select-surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        select option,
+        select optgroup {
+            background-color: var(--select-surface);
+            color: var(--select-option-text);
+        }
+        select option:checked,
+        select option:hover {
+            background-color: #4338ca;
+            color: #fff;
+        }
 
         /* ── 深色简洁背景 ── */
         body {
@@ -870,13 +901,13 @@
             background-repeat: no-repeat;
             background-position: right 10px center;
             padding-right: 32px;
-            background-color: var(--glass-card);
+            background-color: var(--select-surface);
             color: var(--text-primary);
             border: 1px solid var(--border);
         }
         select.form-input option {
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
+            background-color: var(--select-surface);
+            color: var(--select-option-text);
             padding: 8px;
         }
         

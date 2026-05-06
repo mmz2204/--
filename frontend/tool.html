@@ -28,6 +28,7 @@
         }
         
         :root {
+            color-scheme: dark;
             --primary: #6366f1;
             --primary2: #8b5cf6;
             --bg-dark: #0f0f1a;
@@ -36,6 +37,19 @@
             --text: #ffffff;
             --text-secondary: #94a3b8;
             --border: #2d2d44;
+        }
+
+        select {
+            font: inherit;
+            color: var(--text);
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        select option,
+        select optgroup {
+            background-color: #1e293b;
+            color: #e2e8f0;
         }
         
         body {
