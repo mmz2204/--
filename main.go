@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"runtime"
 
 	"github.com/gin-gonic/gin"
 	"tools.jinbox.cn/config"
@@ -10,11 +11,23 @@ import (
 	"tools.jinbox.cn/pkg/logger"
 )
 
+var (
+	version   = "dev"
+	branch    = "unknown"
+	commit    = "unknown"
+	goVersion = runtime.Version()
+)
+
 func main() {
 	// 初始化日志系统
 	if err := logger.InitLogger("./logs", logger.INFO); err != nil {
 		panic("日志系统初始化失败: " + err.Error())
 	}
+
+	// 输出版本信息
+	logger.Info("========================================")
+	logger.Info("服务启动 | 版本:%s | 分支:%s | Commit:%s | Go版本:%s", version, branch, commit, goVersion)
+	logger.Info("========================================")
 
 	// 初始化数据库
 	config.InitDB()

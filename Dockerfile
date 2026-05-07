@@ -15,8 +15,15 @@ COPY .env.docker .env
 # 复制源代码
 COPY . .
 
-# 构建可执行文件
-RUN go build -o main .
+# 构建可执行文件，注入版本信息
+ARG VERSION="dev"
+ARG BRANCH="unknown"
+ARG COMMIT="unknown"
+RUN git fetch --tags && \
+    VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev") && \
+    BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown") && \
+    COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "unknown") && \
+    go build -ldflags "-X main.version=${VERSION} -X main.branch=${BRANCH} -X main.commit=${COMMIT}" -o main .
 
 FROM alpine:latest
 
