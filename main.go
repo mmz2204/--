@@ -76,8 +76,8 @@ func main() {
 		// 二维码生成API
 		public.GET("/qrcode/generate", handler.GenerateQRCode)
 		public.POST("/qrcode/generate", handler.GenerateQRCode)
-		public.GET("/qrcode/logo", handler.GenerateQRCodeWithLogo)
-		public.POST("/qrcode/logo", handler.GenerateQRCodeWithLogo)
+		public.GET("/qrcode/logo", handler.GenerateQRCode)
+		public.POST("/qrcode/logo", handler.GenerateQRCode)
 	}
 
 	// 私有路由（需要JWT认证）
