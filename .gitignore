@@ -21,6 +21,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
-
+#exe
+*.exe
 # Node modules
 node_modules/
