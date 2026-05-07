@@ -150,7 +150,7 @@ func GinLoggerMiddleware() gin.HandlerFunc {
 		duration := time.Since(startTime)
 
 		// 记录访问日志
-		Info("请求 | 方法:%s | 路径:%s | 状态:%d | 耗时:%s | IP:%s",
+		Info("Request | Method:%s | Path:%s | Status:%d | Duration:%s | IP:%s",
 			c.Request.Method,
 			c.Request.URL.Path,
 			c.Writer.Status(),

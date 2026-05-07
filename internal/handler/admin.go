@@ -26,27 +26,27 @@ type LoginRequest struct {
 func Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": "请求参数错误"})
 		return
 	}
 
 	// 根据用户名查找管理员
 	admin, err := model.GetAdminByUsername(config.DB, req.Username)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})
+		c.JSON(http.StatusUnauthorized, gin.H{"code": -1, "message": "用户名或密码错误"})
 		return
 	}
 
 	// 验证密码
 	if !admin.CheckPassword(req.Password) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})
+		c.JSON(http.StatusUnauthorized, gin.H{"code": -1, "message": "用户名或密码错误"})
 		return
 	}
 
 	// 生成JWT token
 	token, err := utils.GenerateToken(admin.ID, admin.Username, admin.IsAdmin)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成token失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "message": "生成token失败"})
 		return
 	}
 

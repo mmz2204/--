@@ -1,4 +1,4 @@
-
+﻿
     let tools = [];
     let categories = [];
     // 滚动导航标志，默认启用
@@ -719,6 +719,30 @@
             return;
         }
         
+        // 如果是首页，切换到首页视图并滚动到顶部
+        if (view === 'all') {
+            document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+            const viewAll = document.getElementById('view-all');
+            if (viewAll) {
+                viewAll.classList.add('active');
+            }
+            
+            // 滚动到页面顶部
+            const mainContent = document.querySelector('.tools-box');
+            if (mainContent) {
+                mainContent.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }
+            
+            // 恢复滚动导航检测
+            setTimeout(() => {
+                window.isClickNavigating = false;
+            }, 1000);
+            return;
+        }
+        
         // 默认行为：切换到指定视图
         document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
         const targetView = document.getElementById('view-' + view);
@@ -1296,10 +1320,12 @@
                             </div>
                             <div style="margin-bottom:16px;">
                                 <label>测试文本：</label>
-                                <textarea id="regex-text" placeholder="输入要测试的文本" style="width:100%;min-height:100px;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);"></textarea>
+                                <div style="display:flex;gap:12px;margin-top:6px;">
+                                    <textarea id="regex-text" placeholder="输入要测试的文本" style="flex:1;min-height:100px;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);"></textarea>
+                                    <button onclick="testRegex()" class="btn-primary" style="height:40px;margin-top:auto;margin-bottom:auto;">测试匹配</button>
+                                </div>
                             </div>
                             <div class="tool-buttons" style="margin-bottom:16px;">
-                                <button onclick="testRegex()" class="btn-primary">测试匹配</button>
                                 <button onclick="clearRegex()" class="btn-secondary">清空</button>
                             </div>
                             <div>
@@ -1481,37 +1507,7 @@
                     </div>
                 `;
                 break;
-            case '二维码生成器':
-                toolContent = `
-                    <div class="json-tool">
-                        <div class="tool-section">
-                            <div class="tool-section-title">二维码生成器</div>
-                            <div style="margin-bottom:16px;">
-                                <input type="text" id="qrcode-input" placeholder="输入网址、文本等内容" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
-                            </div>
-                            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
-                                <label>尺寸：</label>
-                                <div style="position:relative;">
-                                    <select id="qrcode-size" style="appearance:none;padding:8px 32px 8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);min-width:120px;cursor:pointer;">
-                                        <option value="128" style="background:var(--card);color:var(--text);">128px</option>
-                                        <option value="256" style="background:var(--card);color:var(--text);">256px</option>
-                                        <option value="300" style="background:var(--card);color:var(--text);">300px</option>
-                                        <option value="400" style="background:var(--card);color:var(--text);">400px</option>
-                                    </select>
-                                    <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-secondary);">&#9660;</span>
-                                </div>
-                            </div>
-                            <div class="tool-buttons" style="margin-bottom:16px;">
-                                <button onclick="generateQRCode()" class="btn-primary">生成二维码</button>
-                                <button onclick="downloadQRCode()" class="btn-secondary">下载</button>
-                            </div>
-                            <div id="qrcode-container" style="text-align:center;padding:20px;border-radius:8px;border:1px solid var(--border);background:var(--card);">
-                                <div id="qrcode" style="display:inline-block;"></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                break;
+
             case '短链接生成':
                 toolContent = `
                     <div class="json-tool">
@@ -2024,6 +2020,248 @@
                                 <button onclick="printResume()" class="btn-secondary">打印</button>
                             </div>
                             <div id="resume-output" style="margin-top:16px;padding:24px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:200px;"></div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case '在线抠图':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">AI 智能抠图</div>
+                            <div style="margin-bottom:16px;">
+                                <label>上传图片：</label>
+                                <input type="file" id="removebg-upload" accept="image/*" onchange="loadRemoveBgImage()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>背景颜色：</label>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                    <input type="color" id="removebg-bg-color" value="#ffffff" onchange="previewRemoveBg()" style="width:40px;height:32px;border:none;cursor:pointer;">
+                                    <label style="display:flex;align-items:center;gap:4px;font-size:13px;">
+                                        <input type="checkbox" id="removebg-transparent" onchange="toggleRemoveBgTransparent()"> 透明背景
+                                    </label>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+                                <div style="flex:1;min-width:200px;">
+                                    <p style="color:var(--text-dim);margin-bottom:8px;">原图</p>
+                                    <div id="removebg-original-preview" style="text-align:center;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:150px;display:flex;align-items:center;justify-content:center;">
+                                        <span style="color:var(--text-dim);">请上传图片</span>
+                                    </div>
+                                </div>
+                                <div style="flex:1;min-width:200px;">
+                                    <p style="color:var(--text-dim);margin-bottom:8px;">抠图结果</p>
+                                    <div id="removebg-result-preview" style="text-align:center;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:150px;display:flex;align-items:center;justify-content:center;background-image:checkerboard;background-size:16px 16px;">
+                                        <span style="color:var(--text-dim);">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tool-buttons">
+                                <button onclick="downloadRemoveBg()" class="btn-primary">下载结果</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'Logo生成器':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">AI Logo 生成器</div>
+                            <div style="margin-bottom:12px;">
+                                <label>品牌名称：</label>
+                                <input type="text" id="logo-brand-name" placeholder="输入品牌名称" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>行业类型：</label>
+                                <select id="logo-industry" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                    <option value="tech">科技 / 互联网</option>
+                                    <option value="food">餐饮 / 美食</option>
+                                    <option value="fashion">服装 / 时尚</option>
+                                    <option value="education">教育 / 培训</option>
+                                    <option value="health">医疗 / 健康</option>
+                                    <option value="finance">金融 / 投资</option>
+                                    <option value="creative">创意 / 设计</option>
+                                    <option value="other">其他</option>
+                                </select>
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>Logo 风格：</label>
+                                <select id="logo-style" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                    <option value="modern">现代简约</option>
+                                    <option value="classic">经典传统</option>
+                                    <option value="playful">活泼可爱</option>
+                                    <option value="luxury">高端奢华</option>
+                                    <option value="minimal">极简主义</option>
+                                </select>
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>主色调：</label>
+                                <input type="color" id="logo-primary-color" value="#6366f1" style="width:60px;height:32px;border:none;cursor:pointer;">
+                                <span style="margin-left:8px;color:var(--text-dim);font-size:13px;">点击选择颜色</span>
+                            </div>
+                            <div class="tool-buttons" style="margin-bottom:16px;">
+                                <button onclick="generateLogo()" class="btn-primary">生成 Logo</button>
+                                <button onclick="downloadLogo(1)" class="btn-secondary">下载 PNG</button>
+                            </div>
+                            <div id="logo-result" style="text-align:center;padding:24px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:200px;display:flex;align-items:center;justify-content:center;">
+                                <span style="color:var(--text-dim);">输入品牌信息后点击"生成 Logo"</span>
+                            </div>
+                            <div style="margin-top:16px;text-align:center;">
+                                <label style="color:var(--text-dim);font-size:12px;">预览区（点击画布可自定义调整）</label>
+                                <canvas id="logo-canvas" style="max-width:100%;margin-top:8px;border-radius:8px;border:1px solid var(--border);cursor:crosshair;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'PDF转Word':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">PDF 转 Word 文档</div>
+                            <div style="margin-bottom:16px;">
+                                <label>上传 PDF 文件：</label>
+                                <input type="file" id="pdf-to-word-upload" accept="application/pdf" onchange="loadPdfToWord()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div id="pdf-to-word-info" style="margin-bottom:12px;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);display:none;">
+                                <p style="margin:0 0 8px;color:var(--text);">文件名：<span id="pdf-to-word-filename" style="color:var(--primary);"></span></p>
+                                <p style="margin:0;color:var(--text-dim);font-size:13px;">页数：<span id="pdf-to-word-pages"></span></p>
+                            </div>
+                            <div id="pdf-to-word-preview" style="margin-bottom:16px;padding:16px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:150px;display:flex;align-items:center;justify-content:center;">
+                                <span style="color:var(--text-dim);">请上传 PDF 文件</span>
+                            </div>
+                            <div class="tool-buttons">
+                                <button onclick="convertPdfToWord()" class="btn-primary" id="pdf-to-word-btn" disabled>转换为 Word</button>
+                            </div>
+                            <p style="margin-top:12px;color:var(--text-dim);font-size:12px;">提示：本工具会将 PDF 内容提取为文本，可配合 Word 编辑器进一步处理排版。</p>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'Word转PDF':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">Word 转 PDF 文档</div>
+                            <div style="margin-bottom:16px;">
+                                <label>上传 Word 文件：</label>
+                                <input type="file" id="word-to-pdf-upload" accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onchange="loadWordToPdf()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div id="word-to-pdf-info" style="margin-bottom:12px;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);display:none;">
+                                <p style="margin:0 0 8px;color:var(--text);">文件名：<span id="word-to-pdf-filename" style="color:var(--primary);"></span></p>
+                            </div>
+                            <div id="word-to-pdf-preview" style="margin-bottom:16px;padding:16px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:150px;display:flex;align-items:center;justify-content:center;">
+                                <span style="color:var(--text-dim);">请上传 Word 文件</span>
+                            </div>
+                            <div class="tool-buttons">
+                                <button onclick="convertWordToPdf()" class="btn-primary" id="word-to-pdf-btn" disabled>转换为 PDF</button>
+                            </div>
+                            <p style="margin-top:12px;color:var(--text-dim);font-size:12px;">提示：由于浏览器限制，Word 转 PDF 需要将内容提取后重新生成 PDF。</p>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'PDF合并':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">合并多个 PDF 文件</div>
+                            <div style="margin-bottom:16px;">
+                                <label>选择多个 PDF 文件（支持拖拽排序）：</label>
+                                <input type="file" id="pdf-merge-upload" accept="application/pdf" multiple onchange="loadPdfMergeFiles()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div id="pdf-merge-list" style="margin-bottom:16px;min-height:60px;padding:12px;border-radius:8px;border:1px dashed var(--border);background:var(--card);">
+                                <p id="pdf-merge-empty" style="margin:0;text-align:center;color:var(--text-dim);">请添加 PDF 文件</p>
+                            </div>
+                            <div class="tool-buttons">
+                                <button onclick="mergePdfs()" class="btn-primary" id="pdf-merge-btn" disabled>合并 PDF</button>
+                                <button onclick="clearPdfMergeList()" class="btn-secondary">清空列表</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'PDF压缩':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">PDF 文件压缩</div>
+                            <div style="margin-bottom:16px;">
+                                <label>上传 PDF 文件：</label>
+                                <input type="file" id="pdf-compress-upload" accept="application/pdf" onchange="loadPdfCompress()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>压缩质量：</label>
+                                <select id="pdf-compress-quality" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                    <option value="high">高质量（保留更多细节）</option>
+                                    <option value="medium" selected>中等质量（平衡大小和质量）</option>
+                                    <option value="low">低质量（最小文件体积）</option>
+                                </select>
+                            </div>
+                            <div id="pdf-compress-info" style="margin-bottom:12px;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);display:none;">
+                                <p style="margin:0 0 8px;color:var(--text);">文件名：<span id="pdf-compress-filename" style="color:var(--primary);"></span></p>
+                                <p style="margin:0;color:var(--text-dim);font-size:13px;">原始大小：<span id="pdf-compress-original-size"></span></p>
+                            </div>
+                            <div id="pdf-compress-preview" style="margin-bottom:16px;padding:16px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:100px;display:flex;align-items:center;justify-content:center;">
+                                <span style="color:var(--text-dim);">请上传 PDF 文件</span>
+                            </div>
+                            <div class="tool-buttons">
+                                <button onclick="compressPdf()" class="btn-primary" id="pdf-compress-btn" disabled>压缩 PDF</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'OCR文字识别':
+                toolContent = `
+                    <div class="json-tool">
+                        <div class="tool-section">
+                            <div class="tool-section-title">OCR 文字识别</div>
+                            <div style="margin-bottom:16px;">
+                                <label>上传图片：</label>
+                                <input type="file" id="ocr-upload" accept="image/*" onchange="loadOcrImage()" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label>识别语言：</label>
+                                <select id="ocr-language" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+                                    <option value="chi_sim" selected>简体中文</option>
+                                    <option value="eng">English</option>
+                                    <option value="chi_tra">繁体中文</option>
+                                    <option value="jpn">日本语</option>
+                                    <option value="kor">한국어</option>
+                                </select>
+                            </div>
+                            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+                                <div style="flex:1;min-width:200px;">
+                                    <p style="color:var(--text-dim);margin-bottom:8px;">原图</p>
+                                    <div id="ocr-original-preview" style="text-align:center;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:150px;display:flex;align-items:center;justify-content:center;">
+                                        <span style="color:var(--text-dim);">请上传图片</span>
+                                    </div>
+                                </div>
+                                <div style="flex:1;min-width:200px;">
+                                    <p style="color:var(--text-dim);margin-bottom:8px;">识别结果</p>
+                                    <div id="ocr-result-preview" style="text-align:center;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);min-height:150px;display:flex;align-items:center;justify-content:center;">
+                                        <span style="color:var(--text-dim);">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tool-buttons">
+                                <button onclick="startOcr()" class="btn-primary" id="ocr-start-btn" disabled>开始识别</button>
+                                <button onclick="copyOcrResult()" class="btn-secondary" id="ocr-copy-btn" disabled>复制结果</button>
+                            </div>
+                            <div style="margin-top:16px;">
+                                <label>识别文本：</label>
+                                <textarea id="ocr-text-result" placeholder="识别结果将显示在这里" readonly style="width:100%;min-height:150px;padding:12px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-family:monospace;"></textarea>
+                            </div>
+                            <div id="ocr-status" style="margin-top:12px;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);display:none;">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <div id="ocr-progress-bar" style="flex:1;height:8px;background:var(--bg-dark);border-radius:4px;overflow:hidden;">
+                                        <div id="ocr-progress-fill" style="height:100%;background:linear-gradient(90deg, var(--primary), var(--secondary));width:0%;transition:width 0.3s;"></div>
+                                    </div>
+                                    <span id="ocr-progress-text" style="color:var(--text-dim);font-size:13px;">0%</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -2595,468 +2833,6 @@
         document.getElementById('days-alive').textContent = daysAlive;
     }
     
-    // 二维码生成（使用正确的QR Code算法）
-    function generateQRCode() {
-        const text = document.getElementById('qrcode-input').value;
-        const size = parseInt(document.getElementById('qrcode-size').value);
-        
-        if (!text) {
-            alert('请输入内容');
-            return;
-        }
-        
-        const qrcode = document.getElementById('qrcode');
-        qrcode.innerHTML = '';
-        
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        
-        // 生成QR码数据
-        const qr = QRCode.encodeText(text, QRCode.ErrorCorrectionLevel.M);
-        const modules = qr.modules;
-        const moduleCount = modules.length;
-        
-        // 计算模块大小和边距
-        const margin = 4;
-        const totalModules = moduleCount + margin * 2;
-        const moduleSize = size / totalModules;
-        
-        // 填充白色背景
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, size, size);
-        
-        // 绘制QR码模块
-        ctx.fillStyle = '#000000';
-        for (let y = 0; y < moduleCount; y++) {
-            for (let x = 0; x < moduleCount; x++) {
-                if (modules[y][x]) {
-                    const px = (x + margin) * moduleSize;
-                    const py = (y + margin) * moduleSize;
-                    ctx.fillRect(px, py, moduleSize - 0.5, moduleSize - 0.5);
-                }
-            }
-        }
-        
-        qrcode.appendChild(canvas);
-        qrcode.canvas = canvas;
-    }
-    
-    // QR Code 生成库
-    const QRCode = (function() {
-        const PAD0 = 0xEC;
-        const PAD1 = 0x11;
-        
-        const ErrorCorrectionLevel = {
-            L: 1, M: 0, Q: 3, H: 2
-        };
-        
-        const RS_BLOCKS = [
-            // L
-            [[1, 26, 19], [1, 44, 34], [1, 70, 55], [1, 100, 77], [1, 134, 108], [2, 86, 68], [2, 98, 78], [2, 121, 97], [2, 146, 116], [2, 86, 68], [2, 98, 78], [2, 121, 97], [2, 146, 116], [3, 107, 85], [3, 120, 96], [3, 141, 113], [3, 162, 130], [4, 115, 91], [4, 134, 107], [4, 154, 122], [4, 174, 138], [5, 100, 80], [5, 118, 94], [5, 138, 110], [5, 158, 126], [6, 113, 90], [6, 131, 105], [6, 151, 121], [6, 171, 137], [7, 127, 101], [7, 146, 116], [7, 166, 132], [8, 145, 115], [8, 164, 130], [9, 139, 111], [9, 158, 126], [10, 152, 121], [10, 171, 137]],
-            // M
-            [[1, 19, 15], [1, 34, 26], [1, 55, 44], [1, 80, 64], [1, 108, 86], [2, 68, 54], [2, 78, 62], [2, 97, 77], [4, 43, 34], [2, 73, 58], [2, 87, 69], [2, 106, 84], [2, 127, 101], [3, 79, 63], [3, 90, 72], [3, 101, 81], [3, 115, 92], [4, 87, 69], [4, 98, 78], [4, 110, 88], [4, 122, 97], [5, 93, 74], [5, 106, 85], [5, 119, 95], [5, 132, 105], [6, 99, 79], [6, 114, 91], [6, 127, 102], [6, 142, 113], [7, 113, 90], [7, 128, 102], [7, 143, 114], [8, 121, 97], [8, 136, 109], [9, 130, 104], [9, 145, 116], [10, 139, 111], [10, 154, 123]],
-            // Q
-            [[1, 16, 12], [1, 28, 22], [1, 44, 36], [2, 32, 26], [2, 48, 38], [2, 42, 34], [2, 56, 44], [2, 70, 56], [2, 46, 36], [4, 36, 28], [4, 46, 36], [4, 56, 44], [2, 68, 52], [4, 49, 38], [2, 60, 46], [4, 54, 42], [4, 64, 50], [4, 58, 46], [4, 68, 54], [4, 78, 62], [6, 46, 36], [6, 54, 42], [6, 64, 50], [6, 70, 56], [4, 74, 58], [6, 62, 48], [6, 72, 56], [8, 64, 50], [8, 72, 56], [8, 80, 64], [8, 88, 70], [10, 76, 60], [10, 84, 66], [10, 92, 72], [11, 86, 68], [11, 94, 74]],
-            // H
-            [[1, 13, 9], [1, 22, 16], [2, 18, 14], [2, 26, 20], [2, 36, 28], [4, 24, 18], [4, 28, 22], [2, 38, 30], [4, 32, 24], [2, 46, 36], [4, 36, 28], [4, 40, 32], [4, 48, 38], [4, 38, 30], [4, 46, 36], [6, 40, 32], [6, 44, 34], [4, 50, 38], [6, 46, 36], [6, 50, 38], [6, 54, 42], [8, 46, 36], [8, 50, 38], [8, 54, 42], [8, 58, 46], [8, 62, 48], [10, 54, 42], [10, 58, 46], [10, 62, 48], [12, 58, 46], [12, 62, 48], [12, 66, 52], [14, 66, 52], [14, 70, 56], [14, 74, 58], [16, 70, 56], [16, 74, 58]]
-        ];
-        
-        function encodeText(text, ecLevel) {
-            let data = [];
-            const mode = detectMode(text);
-            
-            // 添加模式指示符
-            data.push(mode);
-            
-            // 添加字符计数
-            const count = text.length;
-            const countBits = mode === 0x04 ? (count < 10 ? 3 : 4) : (mode === 0x02 ? 8 : 16);
-            for (let i = countBits - 1; i >= 0; i--) {
-                data.push((count >> i) & 1);
-            }
-            
-            // 添加数据
-            if (mode === 0x04) { // Numeric
-                for (let i = 0; i < text.length; i += 3) {
-                    const num = parseInt(text.substr(i, 3));
-                    if (num < 10) {
-                        appendBits(data, num, 4);
-                    } else if (num < 100) {
-                        appendBits(data, num, 7);
-                    } else {
-                        appendBits(data, num, 10);
-                    }
-                }
-            } else if (mode === 0x02) { // Alphanumeric
-                const alphanumericTable = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
-                for (let i = 0; i < text.length; i += 2) {
-                    const c1 = alphanumericTable.indexOf(text[i]);
-                    const c2 = i + 1 < text.length ? alphanumericTable.indexOf(text[i + 1]) : 0;
-                    const val = c1 * 45 + c2;
-                    appendBits(data, val, 11);
-                }
-            } else { // Byte
-                for (let i = 0; i < text.length; i++) {
-                    appendBits(data, text.charCodeAt(i), 8);
-                }
-            }
-            
-            // 添加终止符
-            for (let i = 0; i < 4 && data.length % 8 !== 0; i++) {
-                data.push(0);
-            }
-            
-            // 填充
-            const version = getVersion(data.length / 8, ecLevel);
-            const totalBytes = getTotalBytes(version, ecLevel);
-            const dataBytes = getDataBytes(version, ecLevel);
-            
-            while (data.length / 8 < dataBytes) {
-                appendBits(data, PAD0, 8);
-                if (data.length / 8 < dataBytes) {
-                    appendBits(data, PAD1, 8);
-                }
-            }
-            
-            // 添加纠错码
-            const ecc = generateECC(data, version, ecLevel);
-            data = data.concat(ecc);
-            
-            // 转换为矩阵
-            return createQRCode(data, version, ecLevel);
-        }
-        
-        function detectMode(text) {
-            const numeric = /^[0-9]*$/;
-            const alphanumeric = /^[0-9A-Z $%*+\-.\/:]*$/;
-            
-            if (numeric.test(text)) return 0x04;
-            if (alphanumeric.test(text)) return 0x02;
-            return 0x08;
-        }
-        
-        function appendBits(arr, val, bits) {
-            for (let i = bits - 1; i >= 0; i--) {
-                arr.push((val >> i) & 1);
-            }
-        }
-        
-        function getVersion(dataLength, ecLevel) {
-            const versions = [
-                [0, 0, 0, 0], [26, 20, 16, 13], [44, 34, 28, 22], [70, 55, 44, 34], [100, 80, 64, 48],
-                [134, 108, 86, 62], [178, 142, 110, 80], [224, 178, 138, 98], [272, 216, 166, 122],
-                [322, 258, 200, 146], [374, 296, 234, 172], [428, 340, 272, 200], [484, 386, 312, 230],
-                [542, 434, 354, 262], [602, 486, 398, 296], [664, 540, 444, 332], [728, 596, 492, 370],
-                [794, 654, 542, 410], [862, 714, 594, 452], [932, 778, 648, 496]
-            ];
-            for (let v = 1; v <= 40; v++) {
-                if (dataLength <= versions[v][ecLevel]) return v;
-            }
-            return 40;
-        }
-        
-        function getTotalBytes(version, ecLevel) {
-            const blocks = RS_BLOCKS[ecLevel][version - 1];
-            let total = 0;
-            for (let i = 0; i < blocks.length; i += 3) {
-                total += blocks[i] * blocks[i + 1];
-            }
-            return total;
-        }
-        
-        function getDataBytes(version, ecLevel) {
-            const blocks = RS_BLOCKS[ecLevel][version - 1];
-            let total = 0;
-            for (let i = 0; i < blocks.length; i += 3) {
-                total += blocks[i] * blocks[i + 2];
-            }
-            return total;
-        }
-        
-        function generateECC(data, version, ecLevel) {
-            const blocks = RS_BLOCKS[ecLevel][version - 1];
-            const dataBytes = getDataBytes(version, ecLevel);
-            const totalBytes = getTotalBytes(version, ecLevel);
-            const eccBytes = totalBytes - dataBytes;
-            
-            const ecc = [];
-            const blockCount = blocks[0];
-            const blockSize = blocks[1];
-            const dataPerBlock = blocks[2];
-            
-            for (let b = 0; b < blockCount; b++) {
-                const start = b * dataPerBlock * 8;
-                const end = start + dataPerBlock * 8;
-                const blockData = data.slice(start, end);
-                
-                const poly = generatePolynomial(eccBytes / blockCount);
-                const code = rsEncode(blockData, poly);
-                ecc.push(...code);
-            }
-            
-            return ecc;
-        }
-        
-        function generatePolynomial(degree) {
-            let poly = [1];
-            for (let i = 0; i < degree; i++) {
-                poly = multiplyPolynomial(poly, [1, pow(2, i)]);
-            }
-            return poly;
-        }
-        
-        function multiplyPolynomial(a, b) {
-            const result = new Array(a.length + b.length - 1).fill(0);
-            for (let i = 0; i < a.length; i++) {
-                for (let j = 0; j < b.length; j++) {
-                    result[i + j] ^= a[i] & b[j];
-                }
-            }
-            return result;
-        }
-        
-        function pow(a, b) {
-            let result = 1;
-            for (let i = 0; i < b; i++) {
-                result = (result << 1) ^ (result & 0x80 ? 0x11D : 0);
-            }
-            return result;
-        }
-        
-        function rsEncode(data, poly) {
-            const code = new Array(poly.length - 1).fill(0);
-            for (let i = 0; i < data.length; i += 8) {
-                let byte = 0;
-                for (let j = 0; j < 8; j++) {
-                    byte = (byte << 1) | (data[i + j] || 0);
-                }
-                
-                let feedback = byte ^ code[0];
-                code.shift();
-                code.push(0);
-                
-                for (let j = 0; j < code.length; j++) {
-                    code[j] ^= poly[j + 1] & feedback;
-                }
-            }
-            
-            const result = [];
-            for (const byte of code) {
-                appendBits(result, byte, 8);
-            }
-            return result;
-        }
-        
-        function createQRCode(data, version, ecLevel) {
-            const size = version * 4 + 17;
-            const modules = new Array(size).fill(null).map(() => new Array(size).fill(false));
-            
-            // 添加定位图案
-            addPositionDetectionPatterns(modules, size);
-            
-            // 添加分隔符
-            addSeparators(modules, size);
-            
-            // 添加对齐图案
-            if (version > 1) {
-                addAlignmentPatterns(modules, version, size);
-            }
-            
-            // 添加定时图案
-            addTimingPatterns(modules, size);
-            
-            // 添加格式信息
-            addFormatInfo(modules, ecLevel, 0, size);
-            
-            // 添加版本信息
-            if (version > 6) {
-                addVersionInfo(modules, version, size);
-            }
-            
-            // 填充数据
-            fillData(modules, data, size);
-            
-            return { modules, version, ecLevel };
-        }
-        
-        function addPositionDetectionPatterns(modules, size) {
-            const positions = [[0, 0], [0, size - 7], [size - 7, 0]];
-            
-            for (const [row, col] of positions) {
-                for (let i = -1; i <= 7; i++) {
-                    for (let j = -1; j <= 7; j++) {
-                        if (row + i >= 0 && row + i < size && col + j >= 0 && col + j < size) {
-                            const isBorder = i === -1 || i === 7 || j === -1 || j === 7;
-                            const isInner = i >= 2 && i <= 4 && j >= 2 && j <= 4;
-                            modules[row + i][col + j] = isBorder || isInner;
-                        }
-                    }
-                }
-            }
-        }
-        
-        function addSeparators(modules, size) {
-            const positions = [[7, 0], [0, 7], [7, size - 8], [size - 8, 7]];
-            
-            for (const [row, col] of positions) {
-                for (let i = 0; i < 8; i++) {
-                    if (row + i < size && !modules[row + i][col]) {
-                        modules[row + i][col] = false;
-                    }
-                    if (col + i < size && !modules[row][col + i]) {
-                        modules[row][col + i] = false;
-                    }
-                }
-            }
-        }
-        
-        function addAlignmentPatterns(modules, version, size) {
-            const positions = getAlignmentPositions(version);
-            
-            for (const i of positions) {
-                for (const j of positions) {
-                    if ((i === 6 && j === 6) || (i === 6 && j === size - 7) || (i === size - 7 && j === 6)) {
-                        continue;
-                    }
-                    for (let di = -2; di <= 2; di++) {
-                        for (let dj = -2; dj <= 2; dj++) {
-                            const isCenter = di === 0 && dj === 0;
-                            const isBorder = di === -2 || di === 2 || dj === -2 || dj === 2;
-                            modules[i + di][j + dj] = isCenter || isBorder;
-                        }
-                    }
-                }
-            }
-        }
-        
-        function getAlignmentPositions(version) {
-            const positions = [
-                [], [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42],
-                [6, 26, 46], [6, 28, 50], [6, 30, 54], [6, 32, 58], [6, 34, 62], [6, 26, 46, 66],
-                [6, 26, 48, 70], [6, 26, 50, 74], [6, 30, 54, 78], [6, 30, 56, 82], [6, 30, 58, 86],
-                [6, 34, 62, 90], [6, 28, 50, 72, 94], [6, 26, 50, 74, 98], [6, 30, 54, 78, 102],
-                [6, 28, 54, 80, 106], [6, 32, 58, 84, 110], [6, 30, 58, 86, 114], [6, 34, 62, 90, 118],
-                [6, 26, 50, 74, 98, 122], [6, 30, 54, 78, 102, 126], [6, 26, 52, 78, 104, 130],
-                [6, 30, 56, 82, 108, 134], [6, 34, 60, 86, 112, 138], [6, 30, 58, 86, 114, 142],
-                [6, 34, 62, 90, 118, 146], [6, 30, 54, 78, 102, 126, 150], [6, 34, 58, 82, 106, 130, 154],
-                [6, 30, 56, 82, 108, 134, 158], [6, 34, 60, 86, 112, 138, 162]
-            ];
-            return positions[version - 1] || [];
-        }
-        
-        function addTimingPatterns(modules, size) {
-            for (let i = 8; i < size - 8; i++) {
-                if (!modules[6][i]) {
-                    modules[6][i] = i % 2 === 0;
-                }
-                if (!modules[i][6]) {
-                    modules[i][6] = i % 2 === 0;
-                }
-            }
-        }
-        
-        function addFormatInfo(modules, ecLevel, mask, size) {
-            const data = (ecLevel << 3) | mask;
-            const polynomial = 0x537;
-            let code = data << 10;
-            
-            while (countBits(code) > 10) {
-                code = (code << 1) ^ (countBits(code) === 15 ? polynomial : 0);
-            }
-            
-            code = ((data << 10) | code) ^ 0x5412;
-            
-            for (let i = 0; i < 15; i++) {
-                const bit = (code >> i) & 1;
-                if (i < 6) {
-                    modules[i][8] = bit;
-                } else if (i < 8) {
-                    modules[i + 1][8] = bit;
-                } else {
-                    modules[size - 15 + i][8] = bit;
-                }
-                
-                if (i < 8) {
-                    modules[8][size - 1 - i] = bit;
-                } else if (i < 9) {
-                    modules[8][15 - i] = bit;
-                } else {
-                    modules[8][size - 16 + i] = bit;
-                }
-            }
-        }
-        
-        function countBits(n) {
-            let count = 0;
-            while (n) {
-                count++;
-                n >>= 1;
-            }
-            return count;
-        }
-        
-        function addVersionInfo(modules, version, size) {
-            const polynomial = 0x1F25;
-            let code = version << 12;
-            
-            while (countBits(code) > 12) {
-                code = (code << 1) ^ (countBits(code) === 17 ? polynomial : 0);
-            }
-            
-            code = (version << 12) | code;
-            
-            for (let i = 0; i < 18; i++) {
-                const bit = (code >> i) & 1;
-                const row = Math.floor(i / 3);
-                const col = i % 3;
-                modules[size - 11 + row][col] = bit;
-                modules[col][size - 11 + row] = bit;
-            }
-        }
-        
-        function fillData(modules, data, size) {
-            let bitIndex = 0;
-            let direction = -1;
-            
-            for (let col = size - 1; col >= 0; col -= 2) {
-                if (col === 6) col--;
-                
-                for (let row = direction === 1 ? 0 : size - 1; row >= 0 && row < size; row += direction) {
-                    for (let k = 0; k < 2; k++) {
-                        const c = col - k;
-                        if (c < 0) continue;
-                        
-                        if (!modules[row][c]) {
-                            if (bitIndex < data.length) {
-                                modules[row][c] = data[bitIndex++];
-                            } else {
-                                modules[row][c] = false;
-                            }
-                        }
-                    }
-                }
-                direction *= -1;
-            }
-        }
-        
-        return { ErrorCorrectionLevel, encodeText };
-    })();
-    
-    function downloadQRCode() {
-        const qrcode = document.getElementById('qrcode');
-        if (!qrcode.canvas) {
-            alert('请先生成二维码');
-            return;
-        }
-        
-        const link = document.createElement('a');
-        link.download = 'qrcode.png';
-        link.href = qrcode.canvas.toDataURL('image/png');
-        link.click();
-    }
-    
     // 短链接生成
     function generateShortUrl() {
         const longUrl = document.getElementById('long-url').value;
@@ -3297,16 +3073,22 @@
         
         historyList.innerHTML = history.map((h) => `
             <div style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.2s;" 
-                 onclick="loadHistory(${h.timestamp}, '${h.datetime}')">
+                 onclick="loadTimestampHistory(${h.timestamp}, '${h.datetime}')">
                 <div style="font-size:13px;color:var(--text-bright);">${h.timestamp}</div>
                 <div style="font-size:11px;color:var(--text-dim);">${h.datetime}</div>
             </div>
         `).join('');
     }
     
-    function loadHistory(timestamp, datetime) {
-        document.getElementById('timestamp-input').value = timestamp;
-        document.getElementById('datetime-input').value = datetime.replace(' ', 'T');
+    function loadTimestampHistory(timestamp, datetime) {
+        const timestampInput = document.getElementById('timestamp-input');
+        const datetimeInput = document.getElementById('datetime-input');
+        if (timestampInput) {
+            timestampInput.value = timestamp;
+        }
+        if (datetimeInput) {
+            datetimeInput.value = datetime.replace(' ', 'T');
+        }
     }
     
     function updateCurrentTime() {
@@ -3523,17 +3305,9 @@
             if(dropArrow){
                 dropArrow.style.display = 'none';
             }
-            if(feedbackIcon){
-                feedbackIcon.classList.remove('show');
-            }
             return;
         }
         
-        // 已登录：显示反馈图标
-        if(feedbackIcon){
-            feedbackIcon.classList.add('show');
-        }
-
         // 已登录：显示用户信息
         if(userProfile.avatar){
             if(ha) ha.innerHTML = `<img src="${userProfile.avatar}">`;
@@ -3891,6 +3665,8 @@
         }
 
         try {
+            console.log('开始登录，用户名:', username);
+            
             const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: {
@@ -3902,7 +3678,31 @@
                 })
             });
 
-            const result = await response.json();
+            console.log('登录请求响应状态:', response.status);
+            
+            // 检查HTTP状态码
+            if (!response.ok) {
+                let errorMsg = '登录失败，HTTP状态码: ' + response.status;
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.message || errorMsg;
+                } catch (e) {
+                    // 响应不是JSON格式
+                }
+                alert(errorMsg);
+                return;
+            }
+
+            // 尝试解析响应
+            let result;
+            try {
+                result = await response.json();
+                console.log('登录响应数据:', result);
+            } catch (e) {
+                console.error('解析响应失败:', e);
+                alert('服务器响应格式错误');
+                return;
+            }
 
             if(result.code === 0){
                 // 登录成功，保存 token
@@ -3915,18 +3715,23 @@
                 saveProfile();
                 hideLoginModal();
                 applyProfile();
-                loadHistory();
+                
+                // 加载历史记录（异步，不阻塞登录流程）
+                loadHistory().catch(err => console.error('加载历史记录失败:', err));
+                
                 if(result.data.favorites && result.data.favorites.length>0){
                     favorites = new Set(result.data.favorites.map(f=>f.tool_id));
                     saveFav();
                     updateBadge();
                 }
+                
+                console.log('登录成功');
             } else {
                 alert(result.message || '登录失败');
             }
         } catch(error) {
             console.error('登录请求失败:', error);
-            alert('网络错误，请稍后重试');
+            alert('网络错误，请稍后重试: ' + error.message);
         }
     }
 
@@ -5487,9 +5292,506 @@
         win.document.close();
         setTimeout(() => win.print(), 500);
     }
+
+    /* ══ 在线抠图 ══ */
+    let removeBgImage = null;
+    let removeBgResultDataUrl = null;
+    function loadRemoveBgImage() {
+        const file = document.getElementById('removebg-upload').files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                removeBgImage = img;
+                const preview = document.getElementById('removebg-original-preview');
+                preview.innerHTML = '';
+                const clone = img.cloneNode();
+                clone.style.maxWidth = '100%';
+                clone.style.maxHeight = '200px';
+                clone.style.borderRadius = '8px';
+                preview.appendChild(clone);
+                previewRemoveBg();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    function toggleRemoveBgTransparent() {
+        const isTransparent = document.getElementById('removebg-transparent').checked;
+        document.getElementById('removebg-bg-color').disabled = isTransparent;
+        previewRemoveBg();
+    }
+    function previewRemoveBg() {
+        if (!removeBgImage) return;
+        const isTransparent = document.getElementById('removebg-transparent').checked;
+        const bgColor = document.getElementById('removebg-bg-color').value;
+        const canvas = document.createElement('canvas');
+        canvas.width = removeBgImage.width;
+        canvas.height = removeBgImage.height;
+        const ctx = canvas.getContext('2d');
+        if (!isTransparent) {
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        ctx.drawImage(removeBgImage, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const bgColorR = parseInt(bgColor.slice(1, 3), 16);
+        const bgColorG = parseInt(bgColor.slice(3, 5), 16);
+        const bgColorB = parseInt(bgColor.slice(5, 7), 16);
+        const threshold = 30;
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i + 1], b = data[i + 2];
+            const diff = Math.abs(r - bgColorR) + Math.abs(g - bgColorG) + Math.abs(b - bgColorB);
+            if (diff < threshold) {
+                if (isTransparent) {
+                    data[i + 3] = 0;
+                } else {
+                    data[i] = bgColorR;
+                    data[i + 1] = bgColorG;
+                    data[i + 2] = bgColorB;
+                }
+            }
+        }
+        ctx.putImageData(imageData, 0, 0);
+        const dataUrl = canvas.toDataURL('image/png');
+        const preview = document.getElementById('removebg-result-preview');
+        preview.innerHTML = '';
+        const resultImg = document.createElement('img');
+        resultImg.src = dataUrl;
+        resultImg.style.maxWidth = '100%';
+        resultImg.style.maxHeight = '200px';
+        resultImg.style.borderRadius = '8px';
+        preview.appendChild(resultImg);
+        removeBgResultDataUrl = dataUrl;
+    }
+    function downloadRemoveBg() {
+        const dataUrl = removeBgResultDataUrl;
+        if (!dataUrl) { alert('请先上传图片并处理'); return; }
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'removed-bg.png';
+        a.click();
+    }
+
+    /* ══ Logo 生成器 ══ */
+    let logoCanvas = null;
+    function generateLogo() {
+        const brandName = document.getElementById('logo-brand-name').value.trim() || 'Brand';
+        const industry = document.getElementById('logo-industry').value;
+        const style = document.getElementById('logo-style').value;
+        const primaryColor = document.getElementById('logo-primary-color').value;
+        const canvas = document.getElementById('logo-canvas');
+        const ctx = canvas.getContext('2d');
+        const size = 400;
+        canvas.width = size;
+        canvas.height = size;
+        ctx.clearRect(0, 0, size, size);
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, primaryColor);
+        gradient.addColorStop(1, adjustColor(primaryColor, 30));
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        if (style === 'minimal') {
+            ctx.fillRect(80, 80, size - 160, size - 160);
+        } else if (style === 'playful') {
+            ctx.ellipse(size / 2, size / 2, size / 2.5, size / 2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.roundRect(60, 60, size - 120, size - 120, 30);
+            ctx.fill();
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 48px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const initials = brandName.substring(0, 2).toUpperCase();
+        ctx.fillText(initials, size / 2, size / 2);
+        const resultDiv = document.getElementById('logo-result');
+        resultDiv.innerHTML = '';
+        const resultCanvas = document.createElement('canvas');
+        resultCanvas.width = size;
+        resultCanvas.height = size;
+        const rctx = resultCanvas.getContext('2d');
+        rctx.drawImage(canvas, 0, 0);
+        const img = document.createElement('img');
+        img.src = resultCanvas.toDataURL('image/png');
+        img.style.maxWidth = '200px';
+        img.style.maxHeight = '200px';
+        img.style.borderRadius = '12px';
+        resultDiv.appendChild(img);
+        resultDiv.dataset.dataUrl = resultCanvas.toDataURL('image/png');
+        logoCanvas = resultCanvas;
+    }
+    function adjustColor(hex, amount) {
+        const num = parseInt(hex.slice(1), 16);
+        const r = Math.min(255, ((num >> 16) & 0xff) + amount);
+        const g = Math.min(255, ((num >> 8) & 0xff) + amount);
+        const b = Math.min(255, (num & 0xff) + amount);
+        return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+    function downloadLogo(format) {
+        const resultDiv = document.getElementById('logo-result');
+        const dataUrl = resultDiv.dataset.dataUrl || (logoCanvas ? logoCanvas.toDataURL('image/png') : null);
+        if (!dataUrl) { alert('请先生成 Logo'); return; }
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'logo.png';
+        a.click();
+    }
+
+    /* ══ PDF 转 Word ══ */
+    let pdfToWordFile = null;
+    function loadPdfToWord() {
+        const file = document.getElementById('pdf-to-word-upload').files[0];
+        if (!file) return;
+        pdfToWordFile = file;
+        document.getElementById('pdf-to-word-filename').textContent = file.name;
+        document.getElementById('pdf-to-word-pages').textContent = '加载中...';
+        document.getElementById('pdf-to-word-info').style.display = 'block';
+        const preview = document.getElementById('pdf-to-word-preview');
+        preview.innerHTML = `<p style="color:var(--primary);">${file.name}</p><p style="color:var(--text-dim);font-size:13px;">${formatFileSize(file.size)}</p>`;
+        document.getElementById('pdf-to-word-btn').disabled = false;
+    }
+    async function convertPdfToWord() {
+        if (!pdfToWordFile) { alert('请先上传 PDF 文件'); return; }
+        try {
+            await loadPDFJS();
+        } catch (err) {
+            alert('加载 PDF.js 库失败: ' + err.message);
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            pdfjsLib.getDocument({ data: e.target.result }).promise.then(function(pdf) {
+                let textContent = '';
+                let pageCount = 0;
+                const totalPages = pdf.numPages;
+                function extractPageText(pageNum) {
+                    return pdf.getPage(pageNum).then(function(page) {
+                        return page.getTextContent().then(function(content) {
+                            let pageText = '';
+                            content.items.forEach(function(item) {
+                                if (item.str) pageText += item.str + '\n';
+                            });
+                            return pageText;
+                        });
+                    });
+                }
+                function extractAllText(pageNum) {
+                    if (pageNum > totalPages) {
+                        const blob = new Blob([textContent], { type: 'text/plain' });
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = 'converted.txt';
+                        a.click();
+                        alert('已提取 ' + totalPages + ' 页文本内容并保存为 TXT 文件');
+                        return;
+                    }
+                    extractPageText(pageNum).then(function(pageText) {
+                        textContent += '--- 第 ' + pageNum + ' 页 ---\n\n' + pageText + '\n\n';
+                        pageCount++;
+                        extractAllText(pageNum + 1);
+                    });
+                }
+                extractAllText(1);
+            }).catch(function(err) {
+                alert('PDF 处理失败: ' + err.message);
+            });
+        };
+        reader.readAsArrayBuffer(pdfToWordFile);
+    }
+
+    /* ══ Word 转 PDF ══ */
+    let wordToPdfFile = null;
+    function loadWordToPdf() {
+        const file = document.getElementById('word-to-pdf-upload').files[0];
+        if (!file) return;
+        wordToPdfFile = file;
+        document.getElementById('word-to-pdf-filename').textContent = file.name;
+        document.getElementById('word-to-pdf-info').style.display = 'block';
+        const preview = document.getElementById('word-to-pdf-preview');
+        preview.innerHTML = `<p style="color:var(--primary);">${file.name}</p><p style="color:var(--text-dim);font-size:13px;">${formatFileSize(file.size)}</p>`;
+        document.getElementById('word-to-pdf-btn').disabled = false;
+    }
+    function convertWordToPdf() {
+        if (!wordToPdfFile) { alert('请先上传 Word 文件'); return; }
+        alert('由于浏览器安全限制，无法直接读取 Word 文件内容。\n\n建议：\n1. 将 Word 内容复制粘贴到在线记事本\n2. 或使用专门的 Word 转 PDF 桌面工具');
+    }
+
+    /* ══ PDF 合并 ══ */
+    let pdfMergeFiles = [];
+    function loadPdfMergeFiles() {
+        const files = document.getElementById('pdf-merge-upload').files;
+        if (!files.length) return;
+        for (let i = 0; i < files.length; i++) {
+            if (files[i].type === 'application/pdf') {
+                pdfMergeFiles.push(files[i]);
+            }
+        }
+        renderPdfMergeList();
+    }
+    function renderPdfMergeList() {
+        const list = document.getElementById('pdf-merge-list');
+        const empty = document.getElementById('pdf-merge-empty');
+        if (pdfMergeFiles.length === 0) {
+            empty.style.display = 'block';
+            list.innerHTML = '<p id="pdf-merge-empty" style="margin:0;text-align:center;color:var(--text-dim);">请添加 PDF 文件</p>';
+            document.getElementById('pdf-merge-btn').disabled = true;
+            return;
+        }
+        empty.style.display = 'none';
+        list.innerHTML = pdfMergeFiles.map((file, idx) => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;margin-bottom:8px;background:var(--bg-dark);border-radius:6px;">
+                <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${file.name}</span>
+                <span style="margin:0 12px;color:var(--text-dim);font-size:12px;">${formatFileSize(file.size)}</span>
+                <button onclick="removePdfFromMerge(${idx})" style="padding:4px 8px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">移除</button>
+            </div>
+        `).join('');
+        document.getElementById('pdf-merge-btn').disabled = false;
+    }
+    function removePdfFromMerge(idx) {
+        pdfMergeFiles.splice(idx, 1);
+        renderPdfMergeList();
+    }
+    function clearPdfMergeList() {
+        pdfMergeFiles = [];
+        renderPdfMergeList();
+    }
+    async function mergePdfs() {
+        if (pdfMergeFiles.length < 2) { alert('请至少添加 2 个 PDF 文件'); return; }
+        try {
+            await loadPDFJS();
+        } catch (err) {
+            alert('加载 PDF-lib 库失败: ' + err.message);
+            return;
+        }
+        const loadingTasks = pdfMergeFiles.map(file => {
+            return file.arrayBuffer().then(ab => PDFLib.PDFDocument.load(ab));
+        });
+        Promise.all(loadingTasks).then(function(pdfs) {
+            return PDFLib.PDFDocument.create();
+        }).then(function(mergedPdf) {
+            let srcIdx = 0;
+            let copied = 0;
+            function copyNextPage() {
+                if (srcIdx >= pdfs.length) {
+                    mergedPdf.save().then(function(bytes) {
+                        const blob = new Blob([bytes], { type: 'application/pdf' });
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = 'merged.pdf';
+                        a.click();
+                        alert('PDF 合并完成！');
+                    });
+                    return;
+                }
+                const srcDoc = pdfs[srcIdx];
+                const pageCount = srcDoc.getPageCount();
+                if (copied >= pageCount) {
+                    srcIdx++;
+                    copied = 0;
+                    copyNextPage();
+                    return;
+                }
+                const pageIndex = copied;
+                srcDoc.copyPages(pageIndex, pageIndex + 1).then(function(ref) {
+                    mergedPdf.addPage(ref);
+                    copied++;
+                    copyNextPage();
+                });
+            }
+            copyNextPage();
+        }).catch(function(err) {
+            alert('PDF 合并失败: ' + err.message);
+        });
+    }
+
+    /* ══ PDF 压缩 ══ */
+    let pdfCompressFile = null;
+    function loadPdfCompress() {
+        const file = document.getElementById('pdf-compress-upload').files[0];
+        if (!file) return;
+        pdfCompressFile = file;
+        document.getElementById('pdf-compress-filename').textContent = file.name;
+        document.getElementById('pdf-compress-original-size').textContent = formatFileSize(file.size);
+        document.getElementById('pdf-compress-info').style.display = 'block';
+        const preview = document.getElementById('pdf-compress-preview');
+        preview.innerHTML = `<p style="color:var(--primary);">${file.name}</p><p style="color:var(--text-dim);font-size:13px;">原始大小：${formatFileSize(file.size)}</p>`;
+        document.getElementById('pdf-compress-btn').disabled = false;
+    }
+    async function compressPdf() {
+        if (!pdfCompressFile) { alert('请先上传 PDF 文件'); return; }
+        try {
+            await loadPDFJS();
+        } catch (err) {
+            alert('加载 PDF-lib 库失败: ' + err.message);
+            return;
+        }
+        const quality = document.getElementById('pdf-compress-quality').value;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            PDFLib.PDFDocument.load(e.target.result).then(function(pdf) {
+                const options = {};
+                if (quality === 'low') {
+                    options.useObjectStreams = true;
+                }
+                pdf.save(options).then(function(bytes) {
+                    const blob = new Blob([bytes], { type: 'application/pdf' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'compressed.pdf';
+                    a.click();
+                    alert('PDF 压缩完成！\n原始大小：' + formatFileSize(pdfCompressFile.size) + '\n压缩后大小：' + formatFileSize(blob.size));
+                });
+            }).catch(function(err) {
+                alert('PDF 压缩失败: ' + err.message);
+            });
+        };
+        reader.readAsArrayBuffer(pdfCompressFile);
+    }
+
+    /* ══ OCR 文字识别 ══ */
+    let ocrImageDataUrl = null;
+    function loadOcrImage() {
+        const file = document.getElementById('ocr-upload').files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            ocrImageDataUrl = e.target.result;
+            const preview = document.getElementById('ocr-original-preview');
+            preview.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '200px';
+            img.style.borderRadius = '8px';
+            preview.appendChild(img);
+            document.getElementById('ocr-start-btn').disabled = false;
+            document.getElementById('ocr-copy-btn').disabled = true;
+            document.getElementById('ocr-text-result').value = '';
+            const resultPreview = document.getElementById('ocr-result-preview');
+            resultPreview.innerHTML = '<span style="color:var(--text-dim);">-</span>';
+        };
+        reader.readAsDataURL(file);
+    }
+    async function startOcr() {
+        if (!ocrImageDataUrl) { alert('请先上传图片'); return; }
+        try {
+            await loadTesseract();
+        } catch (err) {
+            alert('加载 Tesseract.js 库失败: ' + err.message);
+            return;
+        }
+        const language = document.getElementById('ocr-language').value;
+        document.getElementById('ocr-start-btn').disabled = true;
+        document.getElementById('ocr-status').style.display = 'block';
+        document.getElementById('ocr-progress-fill').style.width = '0%';
+        document.getElementById('ocr-progress-text').textContent = '初始化...';
+        Tesseract.recognize(
+            ocrImageDataUrl,
+            language,
+            {
+                logger: function(m) {
+                    if (m.status === 'recognizing text') {
+                        const progress = Math.round(m.progress * 100);
+                        document.getElementById('ocr-progress-fill').style.width = progress + '%';
+                        document.getElementById('ocr-progress-text').textContent = progress + '%';
+                    } else {
+                        document.getElementById('ocr-progress-text').textContent = m.status;
+                    }
+                }
+            }
+        ).then(function(result) {
+            const text = result.data.text;
+            document.getElementById('ocr-text-result').value = text;
+            document.getElementById('ocr-status').style.display = 'none';
+            document.getElementById('ocr-start-btn').disabled = false;
+            document.getElementById('ocr-copy-btn').disabled = false;
+            const resultPreview = document.getElementById('ocr-result-preview');
+            resultPreview.innerHTML = text.length > 0 ? 
+                '<span style="color:var(--primary);font-size:12px;">识别成功！</span>' : 
+                '<span style="color:var(--text-dim);">未识别到文字</span>';
+        }).catch(function(err) {
+            alert('OCR 识别失败: ' + err.message);
+            document.getElementById('ocr-status').style.display = 'none';
+            document.getElementById('ocr-start-btn').disabled = false;
+        });
+    }
+    function copyOcrResult() {
+        const text = document.getElementById('ocr-text-result').value;
+        if (!text) { alert('没有可复制的内容'); return; }
+        navigator.clipboard.writeText(text).then(function() {
+            alert('已复制到剪贴板');
+        }).catch(function(err) {
+            alert('复制失败: ' + err.message);
+        });
+    }
+
+    /* ══ 按需加载库 ══ */
+    const loadedLibs = {};
     
+    function loadScript(url, callback) {
+        if (loadedLibs[url]) {
+            callback(null);
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = url;
+        script.onload = function() {
+            loadedLibs[url] = true;
+            callback(null);
+        };
+        script.onerror = function(err) {
+            callback(err);
+        };
+        document.head.appendChild(script);
+    }
+    
+    async function loadPDFJS() {
+        return new Promise((resolve, reject) => {
+            if (loadedLibs['pdfjs']) {
+                resolve();
+                return;
+            }
+            loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', function(err) {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf.min.js', function(err) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    loadedLibs['pdfjs'] = true;
+                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    resolve();
+                });
+            });
+        });
+    }
+    
+    async function loadTesseract() {
+        return new Promise((resolve, reject) => {
+            if (loadedLibs['tesseract']) {
+                resolve();
+                return;
+            }
+            loadScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js', function(err) {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                loadedLibs['tesseract'] = true;
+                resolve();
+            });
+        });
+    }
+
     /* ══ 反馈功能 ══ */
-    
+
     async function openFeedbackModal() {
         if (!isAdminLoggedIn()) {
             alert('请先登录后再提交反馈');

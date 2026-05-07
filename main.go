@@ -72,6 +72,12 @@ func main() {
 		public.POST("/history", handler.SaveHistory)
 		public.GET("/history", handler.GetHistory)
 		public.DELETE("/history", handler.ClearHistory)
+
+		// 二维码生成API
+		public.GET("/qrcode/generate", handler.GenerateQRCode)
+		public.POST("/qrcode/generate", handler.GenerateQRCode)
+		public.GET("/qrcode/logo", handler.GenerateQRCodeWithLogo)
+		public.POST("/qrcode/logo", handler.GenerateQRCodeWithLogo)
 	}
 
 	// 私有路由（需要JWT认证）
@@ -104,6 +110,29 @@ func main() {
 
 	// Sitemap
 	r.GET("/sitemap.xml", handler.GenerateSitemap)
+
+	// 二维码工具页面路由 - 支持独立路径用于SEO
+	r.GET("/qrcode", func(c *gin.Context) {
+		c.File("./frontend/qrcode.html")
+	})
+	r.GET("/qrcode/text", func(c *gin.Context) {
+		c.File("./frontend/qrcode.html")
+	})
+	r.GET("/qrcode/url", func(c *gin.Context) {
+		c.File("./frontend/qrcode.html")
+	})
+	r.GET("/qrcode/wifi", func(c *gin.Context) {
+		c.File("./frontend/qrcode.html")
+	})
+	r.GET("/qrcode/contact", func(c *gin.Context) {
+		c.File("./frontend/qrcode.html")
+	})
+	r.GET("/qrcode/phone", func(c *gin.Context) {
+		c.File("./frontend/qrcode.html")
+	})
+	r.GET("/qrcode/email", func(c *gin.Context) {
+		c.File("./frontend/qrcode.html")
+	})
 
 	// JSON工具页面路由 - 支持独立路径用于SEO
 	r.GET("/json", func(c *gin.Context) {
