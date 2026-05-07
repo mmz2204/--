@@ -1,6 +1,5 @@
 # 构建阶段 - 使用阿里云镜像加速器
-FROM registry.cn-hangzhou.aliyuncs.com/golang/golang:1.25-alpine AS builder
-
+FROM golang:1.25-alpine AS builder
 # 设置工作目录
 WORKDIR /app
 
