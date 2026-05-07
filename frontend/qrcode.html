@@ -1476,22 +1476,36 @@
 
         // 生成二维码
         async function generateQRCode(type) {
-            const content = getContent(type);
-            if (!content) {
-                showToast('请输入内容');
-                return;
-            }
-
-            const size = getSize(type);
-            const colors = getColors(type);
-
-            const statusEl = document.getElementById('status-' + type);
-            const containerEl = document.getElementById('qrcode-container-' + type);
-
-            statusEl.textContent = '生成中...';
-            statusEl.className = 'generate-status';
-
             try {
+                const content = getContent(type);
+                if (!content) {
+                    showToast('请输入内容');
+                    return;
+                }
+
+                const size = getSize(type);
+                if (!size || size <= 0) {
+                    showToast('请选择二维码尺寸');
+                    return;
+                }
+
+                const colors = getColors(type);
+                if (!colors || !colors.fg || !colors.bg) {
+                    showToast('颜色设置有误');
+                    return;
+                }
+
+                const statusEl = document.getElementById('status-' + type);
+                const containerEl = document.getElementById('qrcode-container-' + type);
+
+                if (!statusEl || !containerEl) {
+                    showToast('页面元素未找到');
+                    return;
+                }
+
+                statusEl.textContent = '生成中...';
+                statusEl.className = 'generate-status';
+
                 const response = await fetch('/api/qrcode/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1504,50 +1518,77 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('请求失败');
+                    const errorData = await response.json().catch(() => null);
+                    throw new Error(errorData?.message || '请求失败: ' + response.status);
                 }
 
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
 
-                // 创建canvas用于显示和下载
-                const canvas = document.createElement('canvas');
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext('2d');
-                
-                const imgEl = new Image();
-                imgEl.src = url;
-                await new Promise(resolve => imgEl.onload = resolve);
-                ctx.drawImage(imgEl, 0, 0, size, size);
-                
-                // 添加Logo（使用当前类型的Logo）
-                const logoImgId = type === 'text' ? 'logo-img' : `logo-img-${type}`;
-                const logoImg = document.getElementById(logoImgId);
-                if (logoImg && logoImg.src) {
-                    const logoSize = Math.floor(size * 0.2);
-                    const logoX = (size - logoSize) / 2;
-                    const logoY = (size - logoSize) / 2;
-                    const logoObj = new Image();
-                    logoObj.src = logoImg.src;
-                    await new Promise(resolve => logoObj.onload = resolve);
-                    ctx.drawImage(logoObj, logoX, logoY, logoSize, logoSize);
-                }
-                
-                qrcodeCanvas = canvas;
-                
-                // 将canvas转换为img显示
+                // 直接创建img显示，不经过canvas（简化流程）
                 const resultImg = document.createElement('img');
-                resultImg.src = canvas.toDataURL();
-                resultImg.style.width = size + 'px';
-                resultImg.style.height = size + 'px';
+                resultImg.onload = function() {
+                    URL.revokeObjectURL(url);
+                    
+                    // 如果有Logo，需要通过canvas叠加
+                    const logoImgId = type === 'text' ? 'logo-img' : `logo-img-${type}`;
+                    const logoImg = document.getElementById(logoImgId);
+                    
+                    if (logoImg && logoImg.src && logoImg.src !== '') {
+                        // 创建canvas添加Logo
+                        const canvas = document.createElement('canvas');
+                        canvas.width = size;
+                        canvas.height = size;
+                        const ctx = canvas.getContext('2d');
+                        
+                        ctx.drawImage(resultImg, 0, 0, size, size);
+                        
+                        const logoObj = new Image();
+                        logoObj.onload = function() {
+                            const logoSize = Math.floor(size * 0.2);
+                            const logoX = (size - logoSize) / 2;
+                            const logoY = (size - logoSize) / 2;
+                            ctx.drawImage(logoObj, logoX, logoY, logoSize, logoSize);
+                            
+                            qrcodeCanvas = canvas;
+                            resultImg.src = canvas.toDataURL();
+                            
+                            containerEl.innerHTML = '';
+                            containerEl.appendChild(resultImg);
+                            
+                            statusEl.textContent = '生成成功';
+                            statusEl.className = 'generate-status success';
+                            showToast('二维码生成成功');
+                        };
+                        logoObj.onerror = function() {
+                            // Logo加载失败，直接显示无Logo的二维码
+                            qrcodeCanvas = null;
+                            containerEl.innerHTML = '';
+                            containerEl.appendChild(resultImg);
+                            
+                            statusEl.textContent = '生成成功（Logo加载失败）';
+                            statusEl.className = 'generate-status success';
+                            showToast('二维码生成成功');
+                        };
+                        logoObj.src = logoImg.src;
+                    } else {
+                        // 无Logo，直接显示
+                        qrcodeCanvas = null;
+                        containerEl.innerHTML = '';
+                        containerEl.appendChild(resultImg);
+                        
+                        statusEl.textContent = '生成成功';
+                        statusEl.className = 'generate-status success';
+                        showToast('二维码生成成功');
+                    }
+                };
                 
-                containerEl.innerHTML = '';
-                containerEl.appendChild(resultImg);
-
-                statusEl.textContent = '生成成功';
-                statusEl.className = 'generate-status success';
-                showToast('二维码生成成功');
+                resultImg.onerror = function() {
+                    URL.revokeObjectURL(url);
+                    throw new Error('图片加载失败');
+                };
+                
+                resultImg.src = url;
 
             } catch (error) {
                 statusEl.textContent = '生成失败: ' + error.message;
