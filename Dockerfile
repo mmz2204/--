@@ -1,4 +1,4 @@
-# 构建阶段 - 使用阿里云镜像加速器
+
 FROM golang:1.25-alpine AS builder
 # 设置工作目录
 WORKDIR /app
@@ -18,8 +18,7 @@ COPY . .
 # 构建可执行文件
 RUN go build -o main .
 
-# 运行阶段 - 使用阿里云镜像加速器
-FROM registry.cn-hangzhou.aliyuncs.com/library/alpine:latest
+FROM alpine:latest
 
 # 设置工作目录
 WORKDIR /app
